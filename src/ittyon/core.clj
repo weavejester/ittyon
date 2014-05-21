@@ -1,5 +1,5 @@
 (ns ittyon.core
-  (:refer-clojure :exclude [assert]))
+  (:refer-clojure :exclude [assert time]))
 
 (def empty-state
   {:snapshot #{}
@@ -12,6 +12,9 @@
         (dissoc m k)
         (assoc m k v)))
     (dissoc m k)))
+
+(defn time []
+  (System/currentTimeMillis))
 
 (defn assert [state [e a v t]]
   (-> state

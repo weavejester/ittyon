@@ -1,17 +1,10 @@
 (ns ittyon.core
-  (:refer-clojure :exclude [assert time]))
+  (:refer-clojure :exclude [assert time])
+  (:require [medley.core :refer [dissoc-in]]))
 
 (def empty-state
   {:snapshot #{}
    :indexes {:eavt {}, :aevt {}, :avet {}}})
-
-(defn dissoc-in [m [k & ks]]
-  (if (seq ks)
-    (let [v (dissoc-in (get m k) ks)]
-      (if (empty? v)
-        (dissoc m k)
-        (assoc m k v)))
-    (dissoc m k)))
 
 (defn time []
   (System/currentTimeMillis))

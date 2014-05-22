@@ -40,12 +40,22 @@
 (defmethod validate [:assert ::aspect] [_ _] true)
 (defmethod validate [:revoke ::aspect] [_ _] true)
 
+(defmulti reactions event-key
+  :default ::no-op)
+
+(defmethod reactions ::no-op [_ _] '())
+
 (def empty-system
-  {:state    empty-state
-   :validate validate})
+  {:state     empty-state
+   :validate  validate
+   :reactions reactions})
 
 (defn valid? [system event]
   (boolean ((:validate system) (:state system) event)))
+
+(defn react [system event]
+  {:pre [(valid? system event)]}
+  ((:reactions system) (:state system) event))
 
 (defn commit [system [o e a v t :as event]]
   {:pre [(valid? system event)]}

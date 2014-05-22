@@ -3,35 +3,32 @@
   (:require [medley.core :refer [dissoc-in]]))
 
 (def empty-state
-  {:snapshot #{}
+  {:snapshot {}
    :indexes  {:eavt {}, :aevt {}, :avet {}}})
 
-(defn- add-eavt [i [e a v t]] (assoc-in i [e a v t] true))
-(defn- add-aevt [i [e a v t]] (assoc-in i [a e v t] true))
-(defn- add-avet [i [e a v t]] (assoc-in i [a v e t] true))
-
 (defn from-snapshot [snapshot]
-  {:snapshot (set snapshot)
-   :indexes  {:eavt (reduce add-eavt {} snapshot)
-              :aevt (reduce add-aevt {} snapshot)
-              :avet (reduce add-avet {} snapshot)}})
+  {:snapshot snapshot
+   :indexes
+   {:eavt (reduce (fn [i [[e a v] t]] (assoc-in i [e a v] t)) {} snapshot)
+    :aevt (reduce (fn [i [[e a v] t]] (assoc-in i [a e v] t)) {} snapshot)
+    :avet (reduce (fn [i [[e a v] t]] (assoc-in i [a v e] t)) {} snapshot)}})
 
 (defn time []
   (System/currentTimeMillis))
 
-(defn assert [state eavt]
+(defn assert [state [e a v t]]
   (-> state
-      (update-in [:snapshot] conj eavt)
-      (update-in [:indexes :eavt] add-eavt eavt)
-      (update-in [:indexes :aevt] add-aevt eavt)
-      (update-in [:indexes :avet] add-avet eavt)))
+      (update-in [:snapshot] assoc [e a v] t)
+      (update-in [:indexes :eavt] assoc-in [e a v] t)
+      (update-in [:indexes :aevt] assoc-in [a e v] t)
+      (update-in [:indexes :avet] assoc-in [a v e] t)))
 
-(defn revoke [state [e a v t]]
+(defn revoke [state [e a v _]]
   (-> state
-      (update-in [:snapshot] disj [e a v t])
-      (update-in [:indexes :eavt] dissoc-in [e a v t])
-      (update-in [:indexes :aevt] dissoc-in [a e v t])
-      (update-in [:indexes :avet] dissoc-in [a v e t])))
+      (update-in [:snapshot] dissoc [e a v])
+      (update-in [:indexes :eavt] dissoc-in [e a v])
+      (update-in [:indexes :aevt] dissoc-in [a e v])
+      (update-in [:indexes :avet] dissoc-in [a v e])))
 
 (defn commit [state [o e a v t]]
   (case o

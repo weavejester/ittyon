@@ -32,9 +32,13 @@
 
 (defn event-key [state [o e a v t]] [o a])
 
-(defmulti validate event-key)
+(defmulti validate event-key
+  :default ::invalid)
 
-(defmethod validate :default [_ _] false)
+(defmethod validate ::invalid [_ _] false)
+
+(defmethod validate [:assert ::aspect] [_ _] true)
+(defmethod validate [:revoke ::aspect] [_ _] true)
 
 (def empty-system
   {:state    empty-state

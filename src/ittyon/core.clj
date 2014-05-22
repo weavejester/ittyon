@@ -30,7 +30,18 @@
       (update-in [:indexes :aevt] dissoc-in [a e v])
       (update-in [:indexes :avet] dissoc-in [a v e])))
 
-(defn commit [state [o e a v t]]
+(def empty-system
+  {:state empty-state, :validations []})
+
+(defn validator [system]
+  (fn [state event]
+    (every? #(% state event) (:validations system))))
+
+(defn valid? [system event]
+  ((validator system) (:state system) event))
+
+(defn commit [system [o e a v t :as event]]
+  {:pre [(valid? system event)]}
   (case o
-    :assert (assert state [e a v t])
-    :revoke (revoke state [e a v t])))
+    :assert (update-in system [:state] assert [e a v t])
+    :revoke (update-in system [:state] revoke [e a v t])))

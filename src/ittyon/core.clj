@@ -26,7 +26,7 @@
       (update-in [:indexes :aevt] add-aevt eavt)
       (update-in [:indexes :avet] add-avet eavt)))
 
-(defn retract [state [e a v t]]
+(defn revoke [state [e a v t]]
   (-> state
       (update-in [:snapshot] disj [e a v t])
       (update-in [:indexes :eavt] dissoc-in [e a v t])
@@ -35,5 +35,5 @@
 
 (defn commit [state [o e a v t]]
   (case o
-    :assert  (assert state [e a v t])
-    :retract (retract state [e a v t])))
+    :assert (assert state [e a v t])
+    :revoke (revoke state [e a v t])))

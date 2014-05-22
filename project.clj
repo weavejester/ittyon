@@ -7,4 +7,5 @@
                  [medley "0.2.0"]]
   :profiles
   {:dev {:jvm-opts ^:replace {}
-         :dependencies [[criterium "0.4.3"]]}})
+         :dependencies [[org.clojure/tools.namespace "0.2.4"]
+                        [criterium "0.4.3"]]}})

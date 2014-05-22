@@ -30,15 +30,18 @@
       (update-in [:indexes :aevt] dissoc-in [a e v])
       (update-in [:indexes :avet] dissoc-in [a v e])))
 
-(def empty-system
-  {:state empty-state, :validations []})
+(defn event-key [state [o e a v t]] [o a])
 
-(defn validator [system]
-  (fn [state event]
-    (every? #(% state event) (:validations system))))
+(defmulti validate event-key)
+
+(defmethod validate :default [_ _] false)
+
+(def empty-system
+  {:state    empty-state
+   :validate validate})
 
 (defn valid? [system event]
-  ((validator system) (:state system) event))
+  (boolean ((:validate system) (:state system) event)))
 
 (defn commit [system [o e a v t :as event]]
   {:pre [(valid? system event)]}

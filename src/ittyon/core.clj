@@ -54,11 +54,15 @@
   (boolean ((:validate system) (:state system) event)))
 
 (defn react [system event]
-  {:pre [(valid? system event)]}
-  ((:reactions system) (:state system) event))
+  (let [reactions ((:reactions system) (:state system) event)]
+    (mapcat (partial react system) reactions)))
 
-(defn commit [system [o e a v t :as event]]
-  {:pre [(valid? system event)]}
-  (case o
-    :assert (update-in system [:state] assert [e a v t])
-    :revoke (update-in system [:state] revoke [e a v t])))
+(defn update [system [o e a v t]]
+  (let [f (case o :assert assert, :revoke revoke)]
+    (update-in system [:state] f [e a v t])))
+
+(defn commit [system event]
+  (if (valid? system event)
+    (let [events (cons event (seq (react system event)))]
+      (reduce update system events))
+    system))

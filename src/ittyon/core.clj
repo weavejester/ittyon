@@ -13,9 +13,6 @@
     :aevt (reduce (fn [i [[e a v] t]] (assoc-in i [a e v] t)) {} snapshot)
     :avet (reduce (fn [i [[e a v] t]] (assoc-in i [a v e] t)) {} snapshot)}})
 
-(defn time []
-  (System/currentTimeMillis))
-
 (defn assert [state [e a v t]]
   (-> state
       (update-in [:snapshot] assoc [e a v] t)
@@ -32,13 +29,22 @@
 
 (defn event-key [state [o e a v t]] [o a])
 
+(defn uuid? [x] (instance? java.util.UUID x))
+(defn time? [x] (instance? java.util.Date x))
+
+(defn uuid [] (java.util.UUID/randomUUID))
+(defn time [] (java.util.Date.))
+
 (defmulti validate event-key
   :default ::invalid)
 
 (defmethod validate ::invalid [_ _] false)
 
-(defmethod validate [:assert ::aspect] [_ _] true)
-(defmethod validate [:revoke ::aspect] [_ _] true)
+(defmethod validate [:assert ::aspect] [_ [o e a v t]]
+  (and (uuid? e) (time? t)))
+
+(defmethod validate [:revoke ::aspect] [_ [o e a v t]]
+  (and (uuid? e) (time? t)))
 
 (defmulti reactions event-key
   :default ::no-op)
@@ -50,8 +56,16 @@
    :validate  validate
    :reactions reactions})
 
+(def ops #{:assert :revoke})
+
+(defn event? [x]
+  (and (sequential? x)
+       (= (count x) 5)
+       (let [[o e a v t] x]
+         (and (ops o) (keyword? a)))))
+
 (defn valid? [system event]
-  (boolean ((:validate system) (:state system) event)))
+  (and (event? event) ((:validate system) (:state system) event)))
 
 (defn react [system event]
   (let [reactions ((:reactions system) (:state system) event)]

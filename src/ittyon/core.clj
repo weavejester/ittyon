@@ -4,11 +4,11 @@
 
 (def empty-state
   {:snapshot {}
-   :indexes  {:eavt {}, :aevt {}, :avet {}}})
+   :index    {:eavt {}, :aevt {}, :avet {}}})
 
 (defn from-snapshot [snapshot]
   {:snapshot snapshot
-   :indexes
+   :index
    {:eavt (reduce (fn [i [[e a v] t]] (assoc-in i [e a v] t)) {} snapshot)
     :aevt (reduce (fn [i [[e a v] t]] (assoc-in i [a e v] t)) {} snapshot)
     :avet (reduce (fn [i [[e a v] t]] (assoc-in i [a v e] t)) {} snapshot)}})
@@ -19,16 +19,16 @@
 (defn assert [state [e a v t]]
   (-> state
       (update-in [:snapshot] assoc [e a v] t)
-      (update-in [:indexes :eavt] assoc-in [e a v] t)
-      (update-in [:indexes :aevt] assoc-in [a e v] t)
-      (update-in [:indexes :avet] assoc-in [a v e] t)))
+      (update-in [:index :eavt] assoc-in [e a v] t)
+      (update-in [:index :aevt] assoc-in [a e v] t)
+      (update-in [:index :avet] assoc-in [a v e] t)))
 
 (defn revoke [state [e a v _]]
   (-> state
       (update-in [:snapshot] dissoc [e a v])
-      (update-in [:indexes :eavt] dissoc-in [e a v])
-      (update-in [:indexes :aevt] dissoc-in [a e v])
-      (update-in [:indexes :avet] dissoc-in [a v e])))
+      (update-in [:index :eavt] dissoc-in [e a v])
+      (update-in [:index :aevt] dissoc-in [a e v])
+      (update-in [:index :avet] dissoc-in [a v e])))
 
 (defn event-key [state [o e a v t]] [o a])
 

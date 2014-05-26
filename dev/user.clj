@@ -6,4 +6,13 @@
             [ittyon.core :as i]
             [medley.core :refer :all]))
 
-(def sys i/empty-system)
+(derive ::position ::i/aspect)
+
+(defmethod i/validate [:assert ::position] [s [o e a v t]]
+  (and (vector? v) (isa? (mapv type v) [Long Long])))
+
+(defonce avatar (i/uuid))
+
+(def sys
+  (-> i/empty-system
+      (i/commit [:assert avatar ::position [100 100] (i/time)])))

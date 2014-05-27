@@ -69,7 +69,7 @@
 
 (defn react [system event]
   (let [reactions ((:reactions system) (:state system) event)]
-    (mapcat (partial react system) reactions)))
+    (concat reactions (mapcat (partial react system) reactions))))
 
 (defn update [system [o e a v t]]
   (let [f (case o :assert assert, :revoke revoke)]

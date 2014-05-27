@@ -56,13 +56,11 @@
    :validate  validate
    :reactions reactions})
 
-(def ops #{:assert :revoke})
-
 (defn event? [x]
   (and (sequential? x)
        (= (count x) 5)
        (let [[o e a v t] x]
-         (and (ops o) (keyword? a)))))
+         (and (#{:assert :revoke} o) (keyword? a)))))
 
 (defn valid? [system event]
   (and (event? event) ((:validate system) (:state system) event)))
@@ -80,3 +78,10 @@
     (let [events (cons event (seq (react system event)))]
       (reduce update system events))
     system))
+
+(defn tick
+  ([system] (tick system (time)))
+  ([system time]
+     (->> (get-in system [:state :snapshot])
+          (mapcat (fn [[[e a v] _]] (react system [:tick e a time])))
+          (reduce update system))))

@@ -32,7 +32,7 @@
   (atom i/empty-system))
 
 (def server-system
-  (atom (-> i/empty-system (i/commit [:assert avatar ::position [0 0] (i/time)]))))
+  (atom (-> i/empty-system (i/commit [[:assert avatar ::position [0 0] (i/time)]]))))
 
 (def input-ch (a/chan))
 

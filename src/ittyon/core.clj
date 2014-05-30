@@ -73,10 +73,11 @@
   (let [f (case o :assert assert, :revoke revoke)]
     (update-in system [:state] f [e a v t])))
 
-(defn commit [system event]
-  (if (valid? system event)
-    (let [events (cons event (seq (react system event)))]
-      (reduce update system events))
+(defn commit [system tx]
+  (if (every? (partial valid? system) tx)
+    (->> (mapcat (partial react system) tx)
+         (concat tx)
+         (reduce update system))
     system))
 
 (defn tick

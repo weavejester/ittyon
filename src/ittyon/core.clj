@@ -46,6 +46,14 @@
 (defmethod validate [:revoke ::aspect] [_ [o e a v t]]
   (and (uuid? e) (integer? t)))
 
+(defmulti expansion (fn [s [o & _]] o))
+
+(defmethod expansion :revoke-all [s [o e t]]
+  (for [[e avt] (-> s :index :eavt)
+        [a vt]  avt
+        [v _]   vt]
+    [:revoke e a v t]))
+
 (defmulti reactions event-key
   :default ::no-op)
 
@@ -54,6 +62,7 @@
 (def empty-system
   {:state     empty-state
    :validate  validate
+   :expansion expansion
    :reactions reactions})
 
 (defn event? [x]
@@ -65,6 +74,9 @@
 (defn valid? [system event]
   (and (event? event) ((:validate system) (:state system) event)))
 
+(defn expand [system event]
+  ((:expansion system) (:state system) event))
+
 (defn react [system event]
   (let [reactions ((:reactions system) (:state system) event)]
     (concat reactions (mapcat (partial react system) reactions))))
@@ -73,12 +85,16 @@
   (let [f (case o :assert assert, :revoke revoke)]
     (update-in system [:state] f [e a v t])))
 
+(defn- commit1 [system event]
+  (let [system    (update system event)
+        reactions (react system event)]
+    (reduce system update reactions)))
+
 (defn commit [system tx]
-  (if (every? (partial valid? system) tx)
-    (->> (mapcat (partial react system) tx)
-         (concat tx)
-         (reduce update system))
-    system))
+  (let [events (mapcat (partial expand system) tx)]
+    (if (every? (partial valid? system) events)
+      (reduce commit1 system events)
+      system)))
 
 (defn tick
   ([system] (tick system (time)))

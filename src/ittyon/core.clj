@@ -75,8 +75,9 @@
 
 (defn commit [system event]
   (if (valid? system event)
-    (let [events (cons event (seq (react system event)))]
-      (reduce update system events))
+    (let [system    (update system event)
+          reactions (react system event)]
+      (reduce update system (cons event (seq reactions))))
     system))
 
 (defn tick

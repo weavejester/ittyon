@@ -2,23 +2,6 @@
   (:require [clojure.core.async :as a :refer [go go-loop <! >!]]
             [ittyon.core :as i]))
 
-(defn- send-system [socket system]
-  (go (>! socket (i/time))
-      (let [time    (<! socket)
-            latency (* 2 (- (i/time) time))]
-        (>! socket latency)
-        (>! socket (-> system :state :snapshot)))))
-
-(defn- recv-system [socket system]
-  (go (let [time     (<! socket)
-            diff     (- (i/time) time)
-            _        (>! socket (+ (i/time) diff))
-            latency  (<! socket)
-            snapshot (<! socket)]
-        (assoc system
-          :offset (+ diff latency)
-          :state  (i/from-snapshot snapshot)))))
-
 (defn- sync-system [socket sysref]
   (go-loop []
     (when-let [event (<! socket)]
@@ -28,19 +11,21 @@
 (defn- pipe-input [input socket sysref]
   (go-loop []
     (if-let [event (<! input)]
-      (let [diff  (:offset @sysref)
-            event (conj event (+ (i/time) diff))]
+      (let [event (conj event (i/time @sysref))]
         (>! socket event)
         (swap! sysref i/commit event)
         (recur))
       (a/close! socket))))
 
 (defn connect [socket sysref input]
-  (go (let [system (<! (recv-system socket @sysref))]
-        (reset! sysref system)
+  (go (let [time     (<! socket)
+            offset   (- (i/time) time)
+            snapshot (<! socket)]
+        (swap! sysref assoc :offset offset, :state (i/from-snapshot snapshot))
         (pipe-input input socket sysref)
         (sync-system socket sysref))))
 
 (defn listen [socket sysref]
-  (go (<! (send-system socket @sysref))
+  (go (>! socket (i/time))
+      (>! socket (-> @sysref :state :snapshot))
       (sync-system socket sysref)))

@@ -6,6 +6,7 @@
             [clojure.core.async :as a :refer [go <! >! <!! >!!]]
             [ittyon.core :as i]
             [ittyon.async :as ia]
+            [chord.channels :refer [bidi-ch]]
             [medley.core :refer :all]))
 
 (derive ::position ::i/aspect)
@@ -28,16 +29,15 @@
 
 (def avatar (i/uuid))
 
+(def client-system (atom i/empty-system))
+
 (def init-system
   (-> i/empty-system
       (i/commit [:assert avatar ::position [0 0] (i/time)])))
 
-(def client-system (atom i/empty-system))
-
-(def socket (a/chan))
-
-(def client (ia/connect client-system socket))
-
 (def server-system (atom init-system))
 
-(ia/listen server-system socket)
+(let [a (a/chan)
+      b (a/chan)]
+  (ia/listen server-system (bidi-ch a b))
+  (def client (ia/connect client-system (bidi-ch b a))))

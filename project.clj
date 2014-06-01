@@ -10,4 +10,5 @@
   {:dev {:jvm-opts ^:replace {}
          :source-paths ["dev"]
          :dependencies [[org.clojure/tools.namespace "0.2.4"]
-                        [criterium "0.4.3"]]}})
+                        [criterium "0.4.3"]
+                        [jarohen/chord "0.4.1"]]}})

@@ -29,7 +29,9 @@
 
 (defn event-key [state [o e a v t]] [o a])
 
-(defn time [] (System/currentTimeMillis))
+(defn time
+  ([] (System/currentTimeMillis))
+  ([system] (+ (time) (:offset system))))
 
 (defn uuid? [x] (instance? java.util.UUID x))
 
@@ -53,6 +55,7 @@
 
 (def empty-system
   {:state     empty-state
+   :offset    0
    :validate  validate
    :reactions reactions})
 
@@ -81,7 +84,7 @@
     system))
 
 (defn tick
-  ([system] (tick system (time)))
+  ([system] (tick system (time system)))
   ([system time]
      (->> (get-in system [:state :snapshot])
           (mapcat (fn [[[e a v] _]] (react system [:tick e a time])))

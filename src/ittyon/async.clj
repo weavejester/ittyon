@@ -16,8 +16,8 @@
             latency  (<! socket)
             snapshot (<! socket)]
         (assoc system
-          :time-diff (+ diff latency)
-          :state     (i/from-snapshot snapshot)))))
+          :offset (+ diff latency)
+          :state  (i/from-snapshot snapshot)))))
 
 (defn- sync-system [socket sysref]
   (go-loop []
@@ -28,7 +28,7 @@
 (defn- pipe-input [input socket sysref]
   (go-loop []
     (if-let [event (<! input)]
-      (let [diff  (:time-diff @sysref)
+      (let [diff  (:offset @sysref)
             event (conj event (+ (i/time) diff))]
         (>! socket event)
         (swap! sysref i/commit event)

@@ -28,14 +28,16 @@
 
 (def avatar (i/uuid))
 
-(def client-system
-  (atom i/empty-system))
+(def init-system
+  (-> i/empty-system
+      (i/commit [:assert avatar ::position [0 0] (i/time)])))
 
-(def server-system
-  (atom (-> i/empty-system (i/commit [:assert avatar ::position [0 0] (i/time)]))))
+(def client-system (atom i/empty-system))
 
-(def input-ch (a/chan))
+(def socket (a/chan))
 
-(let [socket (a/chan)]
-  (ia/listen socket server-system)
-  (ia/connect socket client-system input-ch))
+(def client (ia/connect client-system socket))
+
+(def server-system (atom init-system))
+
+(ia/listen server-system socket)

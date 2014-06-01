@@ -22,7 +22,8 @@
 (defn- sync-system [socket sysref]
   (go-loop []
     (when-let [event (<! socket)]
-      (swap! sysref i/commit event))))
+      (swap! sysref i/commit event)
+      (recur))))
 
 (defn- pipe-input [input socket sysref]
   (go-loop []
@@ -30,7 +31,8 @@
       (let [diff  (:time-diff @sysref)
             event (conj event (+ (i/time) diff))]
         (>! socket event)
-        (swap! sysref i/commit event))
+        (swap! sysref i/commit event)
+        (recur))
       (a/close! socket))))
 
 (defn connect [socket sysref input]

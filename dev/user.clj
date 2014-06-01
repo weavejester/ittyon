@@ -24,8 +24,7 @@
 (defmethod i/reactions [:tick ::lifespan] [s [o e a t]]
   (let [[d t0] (first (get-in s [:index :eavt e a]))]
     (if (> t (+ t0 (* d 1000)))
-      (for [[e avt] (-> s :index :eavt), [a vt] avt, [v _] vt]
-        [:revoke e a v t]))))
+      [[:assert e ::i/dead true t]])))
 
 (def avatar (i/uuid))
 

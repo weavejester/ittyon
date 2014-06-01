@@ -53,6 +53,14 @@
 
 (defmethod reactions ::no-op [_ _] '())
 
+(derive ::dead ::aspect)
+
+(defmethod reactions [:assert ::dead] [s [o e a v t]]
+  (for [[e avt] (-> s :index :eavt)
+        [a vt]  avt
+        [v _]   vt]
+    [:revoke e a v t]))
+
 (def empty-system
   {:state     empty-state
    :offset    0

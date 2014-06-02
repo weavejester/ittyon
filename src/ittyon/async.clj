@@ -2,6 +2,12 @@
   (:require [clojure.core.async :as a :refer [go go-loop <! >!]]
             [ittyon.core :as i]))
 
+(defn put-all! [chs msg]
+  (doseq [ch chs] (a/put! ch msg)))
+
+(defn close-all! [chs]
+  (doseq [ch chs] (a/close! ch)))
+
 (defn send-state! [sysref socket]
   (go (>! socket (i/time))
       (>! socket (-> @sysref :state :snapshot))))
@@ -22,13 +28,8 @@
               (when (identical? port input) (>! socket event))
               (swap! sysref i/commit event)
               (recur))))
-        (a/close! socket)
-        (a/close! input))
+        (close-all! [socket input]))
     (a/map> #(conj % (i/time @sysref)) input)))
-
-(defn put-all! [chs msg]
-  (doseq [ch chs]
-    (a/put! ch msg)))
 
 (defn listen [sysref sockets socket]
   (let [buffer (a/chan 32)]
@@ -50,6 +51,5 @@
           (when-let [socket (<! conn)]
             (listen sysref sockets socket)
             (recur)))
-        (doseq [socket @sockets]
-          (a/close! socket)))
+        (close-all! @sockets))
     conn))

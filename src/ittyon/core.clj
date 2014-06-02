@@ -77,8 +77,7 @@
   (and (event? event) ((:validate system) (:state system) event)))
 
 (defn react [system event]
-  (let [reactions ((:reactions system) (:state system) event)]
-    (concat reactions (mapcat (partial react system) reactions))))
+  ((:reactions system) (:state system) event))
 
 (defn update [system [o e a v t]]
   (let [f (case o :assert assert, :revoke revoke)]
@@ -88,12 +87,12 @@
   (if (valid? system event)
     (let [system    (update system event)
           reactions (react system event)]
-      (reduce update system (cons event (seq reactions))))
+      (reduce commit system reactions))
     system))
 
 (defn tick
   ([system] (tick system (time system)))
   ([system time]
      (->> (get-in system [:state :snapshot])
-          (mapcat (fn [[[e a v] _]] (react system [:tick e a time])))
-          (reduce update system))))
+          (mapcat (fn [[[e a _] _]] (react system [:tick e a time])))
+          (reduce commit system))))

@@ -2,33 +2,51 @@
   (:require [clojure.core.async :as a :refer [go go-loop <! >!]]
             [ittyon.core :as i]))
 
-(defn- sync-system [sysref in]
-  (go-loop []
-    (when-let [event (<! in)]
-      (swap! sysref i/commit event)
-      (recur))))
+(defn send-state! [sysref socket]
+  (go (>! socket (i/time))
+      (>! socket (-> @sysref :state :snapshot))))
 
-(defn- pipe-input [sysref in out]
-  (go-loop []
-    (if-let [event (<! in)]
-      (let [event (conj event (i/time @sysref))]
-        (>! out event)
-        (swap! sysref i/commit event)
-        (recur))
-      (a/close! out))))
+(defn recv-state! [sysref socket]
+  (go (let [time     (<! socket)
+            offset   (- (i/time) time)
+            snapshot (<! socket)
+            state    (i/from-snapshot snapshot)]
+        (swap! sysref assoc :offset offset :state state))))
 
 (defn connect [sysref socket]
   (let [input (a/chan)]
-    (go (let [time     (<! socket)
-              offset   (- (i/time) time)
-              snapshot (<! socket)]
-          (doto sysref
-            (swap! assoc :offset offset, :state (i/from-snapshot snapshot))
-            (pipe-input input socket)
-            (sync-system socket))))
-    input))
+    (go (<! (recv-state! sysref socket))
+        (loop []
+          (let [[event port] (a/alts! [socket input])]
+            (when event
+              (when (identical? port input) (>! socket event))
+              (swap! sysref i/commit event)
+              (recur))))
+        (a/close! socket)
+        (a/close! input))
+    (a/map> #(conj % (i/time @sysref)) input)))
 
-(defn listen [sysref socket]
-  (go (>! socket (i/time))
-      (>! socket (-> @sysref :state :snapshot))
-      (sync-system sysref socket)))
+(defn put-all! [chs msg]
+  (doseq [ch chs]
+    (a/put! ch msg)))
+
+(defn listen [sysref sockets socket]
+  (go (<! (send-state! sysref socket))
+      (loop []
+        (when-let [event (<! socket)]
+          (swap! sysref i/commit event)
+          (put-all! (disj @sockets socket) event)
+          (recur)))
+      (swap! sockets disj socket)))
+
+(defn acceptor [sysref]
+  (let [conn    (a/chan)
+        sockets (atom #{})]
+    (go (loop []
+          (when-let [socket (<! conn)]
+            (swap! sockets conj socket)
+            (listen sysref sockets socket)
+            (recur)))
+        (doseq [socket @sockets]
+          (a/close! socket)))
+    conn))

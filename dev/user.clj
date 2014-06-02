@@ -28,15 +28,20 @@
 
 (def avatar (i/uuid))
 
-(def client-system (atom i/empty-system))
-
 (def init-system
   (-> i/empty-system
       (i/commit [:assert avatar ::position [0 0] (i/time)])))
 
 (def server-system (atom init-system))
 
-(let [a (a/chan)
-      b (a/chan)]
-  (ia/listen server-system (bidi-ch a b))
-  (def client (ia/connect client-system (bidi-ch b a))))
+(def server (ia/acceptor server-system))
+
+(def client1-system (atom i/empty-system))
+(def client2-system (atom i/empty-system))
+
+(let [a (a/chan), b (a/chan)
+      c (a/chan), d (a/chan)]
+  (>!! server (bidi-ch a b))
+  (>!! server (bidi-ch c d))
+  (def client1 (ia/connect client1-system (bidi-ch b a)))
+  (def client2 (ia/connect client2-system (bidi-ch d c))))

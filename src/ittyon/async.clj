@@ -31,20 +31,23 @@
     (a/put! ch msg)))
 
 (defn listen [sysref sockets socket]
-  (go (<! (send-state! sysref socket))
-      (loop []
-        (when-let [event (<! socket)]
-          (swap! sysref i/commit event)
-          (put-all! (disj @sockets socket) event)
-          (recur)))
-      (swap! sockets disj socket)))
+  (let [buffer (a/chan 32)]
+    (go (swap! sockets conj buffer)
+        (<! (send-state! sysref socket))
+        (a/pipe buffer socket)
+        (loop []
+          (when-let [event (<! socket)]
+            (swap! sysref i/commit event)
+            (put-all! (disj @sockets socket) event)
+            (recur)))
+        (swap! sockets disj buffer)
+        (a/close! buffer))))
 
 (defn acceptor [sysref]
   (let [conn    (a/chan)
         sockets (atom #{})]
     (go (loop []
           (when-let [socket (<! conn)]
-            (swap! sockets conj socket)
             (listen sysref sockets socket)
             (recur)))
         (doseq [socket @sockets]

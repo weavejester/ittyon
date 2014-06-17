@@ -1,6 +1,7 @@
 (ns ittyon.core
   (:refer-clojure :exclude [assert time])
-  (:require [medley.core :refer [dissoc-in]]))
+  (:require [medley.core :refer [dissoc-in]]
+            [intentions.core :refer [defintent defconduct]]))
 
 (def empty-state
   {:snapshot {}
@@ -37,25 +38,29 @@
 
 (defn uuid [] (java.util.UUID/randomUUID))
 
-(defmulti validate event-key
+(defintent validate
+  :dispatch event-key
+  :combine #(and %1 %2)
   :default ::invalid)
 
-(defmethod validate ::invalid [_ _] false)
+(defconduct validate ::invalid [_ _] false)
 
-(defmethod validate [:assert ::aspect] [_ [o e a v t]]
+(defconduct validate [:assert ::aspect] [_ [o e a v t]]
   (and (uuid? e) (integer? t)))
 
-(defmethod validate [:revoke ::aspect] [_ [o e a v t]]
+(defconduct validate [:revoke ::aspect] [_ [o e a v t]]
   (and (uuid? e) (integer? t)))
 
-(defmulti reactions event-key
+(defintent reactions
+  :dispatch event-key
+  :combine concat
   :default ::no-op)
 
-(defmethod reactions ::no-op [_ _] '())
+(defconduct reactions ::no-op [_ _] '())
 
 (derive ::dead ::aspect)
 
-(defmethod reactions [:assert ::dead] [s [o e a v t]]
+(defconduct reactions [:assert ::dead] [s [o e a v t]]
   (for [[e avt] (-> s :index :eavt)
         [a vt]  avt
         [v _]   vt]

@@ -7,4 +7,7 @@
             [ittyon.core :as i]
             [ittyon.async :as ia]
             [chord.channels :refer [bidi-ch]]
-            [medley.core :refer :all]))
+            [medley.core :refer :all]
+            [intentions.core :refer :all]))
+
+(def sys (atom i/empty-system))

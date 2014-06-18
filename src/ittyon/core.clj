@@ -1,6 +1,7 @@
 (ns ittyon.core
-  (:refer-clojure :exclude [assert time])
-  (:require [medley.core :refer [dissoc-in]]
+  (:refer-clojure :exclude [assert time derive])
+  (:require [clojure.core :as core]
+            [medley.core :refer [dissoc-in]]
             [intentions.core :refer [defintent defconduct]]))
 
 (def empty-state
@@ -37,6 +38,11 @@
 (defn uuid? [x] (instance? java.util.UUID x))
 
 (defn uuid [] (java.util.UUID/randomUUID))
+
+(defn derive [h? tag & parents]
+  (if (map? h?)
+    (reduce #(core/derive %1 tag %2) h? parents)
+    (doseq [p (cons tag parents)] (core/derive h? p))))
 
 (defintent validate
   :dispatch event-key

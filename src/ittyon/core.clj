@@ -45,11 +45,17 @@
 
 (defconduct validate ::invalid [_ _] false)
 
-(defconduct validate [:assert ::aspect] [_ [o e a v t]]
-  (and (uuid? e) (integer? t)))
+(defconduct validate [:assert ::live?] [_ [o e a v t]]
+  (and (uuid? e) (integer? t) (true? v)))
+
+(defconduct validate [:assert ::aspect] [s [o e a v t]]
+  (and (uuid? e) (integer? t) (get-in s [:index :eavt e ::live?])))
+
+(defconduct validate [:revoke ::live?] [_ [o e a v t]]
+  (integer? t))
 
 (defconduct validate [:revoke ::aspect] [_ [o e a v t]]
-  (and (uuid? e) (integer? t)))
+  (integer? t))
 
 (defintent reactions
   :dispatch event-key
@@ -58,9 +64,7 @@
 
 (defconduct reactions ::no-op [_ _] '())
 
-(derive ::dead ::aspect)
-
-(defconduct reactions [:assert ::dead] [s [o e a v t]]
+(defconduct reactions [:revoke ::live?] [s [o e a v t]]
   (for [[e avt] (-> s :index :eavt)
         [a vt]  avt
         [v _]   vt]

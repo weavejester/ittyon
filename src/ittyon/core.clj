@@ -76,6 +76,10 @@
         [v _]   vt]
     [:revoke e a v t]))
 
+(defconduct reactions [:assert ::singular] [s [o e a v t]]
+  (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
+    [:revoke e a v* t]))
+
 (def empty-system
   {:state     empty-state
    :offset    0

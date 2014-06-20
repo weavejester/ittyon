@@ -109,6 +109,15 @@
       (reduce commit system reactions))
     system))
 
+(defn receive
+  ([system event] (receive system event (time)))
+  ([system event local-time]
+     (case (first event)
+       :commit (commit system (second event))
+       :reset  (assoc system :state (from-snapshot (second event)))
+       :time   (assoc system :offset (- local-time (second event)))
+       system)))
+
 (defn tick
   ([system] (tick system (time system)))
   ([system time]

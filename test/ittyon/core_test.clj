@@ -40,3 +40,16 @@
   (is (not (i/revision? [:assert :e :a :v])))
   (is (i/revision? [:assert :e :a :v :t]))
   (is (i/revision? [:assert :e :a :v :t])))
+
+(deftest test-commit
+  (let [entity (i/uuid)
+        time   (i/time)]
+    (i/derive ::name ::i/aspect ::i/singular)
+    (is (= (-> i/empty-system
+               (i/commit [:assert entity ::i/live? true time])
+               (i/commit [:assert entity ::name "alice" time])
+               (i/commit [:assert entity ::name "bob" time])
+               :state
+               :snapshot)
+           {[entity ::i/live? true] time
+            [entity ::name "bob"] time}))))

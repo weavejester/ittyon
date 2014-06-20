@@ -8,37 +8,26 @@
 (defn close-all! [chs]
   (doseq [ch chs] (a/close! ch)))
 
-(defn send-state! [sysref socket]
-  (go (>! socket (i/time))
-      (>! socket (-> @sysref :state :snapshot))))
-
-(defn recv-state! [sysref socket]
-  (go (let [time     (<! socket)
-            offset   (- (i/time) time)
-            snapshot (<! socket)
-            state    (i/from-snapshot snapshot)]
-        (swap! sysref assoc :offset offset :state state))))
-
 (defn connect [sysref socket]
   (let [input (a/chan)]
-    (go (<! (recv-state! sysref socket))
-        (loop []
-          (let [[event port] (a/alts! [socket input])]
-            (when event
-              (when (identical? port input) (>! socket event))
-              (swap! sysref i/commit event)
-              (recur))))
-        (close-all! [socket input]))
+    (go-loop []
+      (let [[event port] (a/alts! [socket input])]
+        (if event
+          (do (when (identical? port input) (>! socket event))
+              (swap! sysref i/recv-client event)
+              (recur))
+          (close-all! [socket input]))))
     (a/map> #(conj % (i/time @sysref)) input)))
 
 (defn listen [sysref sockets socket]
   (let [buffer (a/chan 32)]
     (go (swap! sockets conj buffer)
-        (<! (send-state! sysref socket))
+        (>! socket [:time (i/time)])
+        (>! socket [:reset (-> @sysref :state :snapshot)])
         (a/pipe buffer socket)
         (loop []
           (when-let [event (<! socket)]
-            (swap! sysref i/commit event)
+            (swap! sysref i/recv-server event)
             (put-all! (disj @sockets socket) event)
             (recur)))
         (swap! sockets disj buffer)

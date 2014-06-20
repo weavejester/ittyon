@@ -109,18 +109,23 @@
       (reduce commit system reactions))
     system))
 
-(defn receive
-  ([system event] (receive system event (time)))
-  ([system event local-time]
-     (case (first event)
-       :commit (commit system (second event))
-       :reset  (assoc system :state (from-snapshot (second event)))
-       :time   (assoc system :offset (- local-time (second event)))
-       system)))
-
 (defn tick
   ([system] (tick system (time system)))
   ([system time]
      (->> (get-in system [:state :snapshot])
           (mapcat (fn [[[e a _] _]] (react system [:tick e a time])))
           (reduce commit system))))
+
+(defn recv-server [system event]
+  (if (= (first event) :commit)
+    (commit system (second event))
+    system))
+
+(defn recv-client
+  ([system event] (recv-client system event (time)))
+  ([system event local-time]
+     (case (first event)
+       :commit (commit system (second event))
+       :reset  (assoc system :state (from-snapshot (second event)))
+       :time   (assoc system :offset (- local-time (second event)))
+       system)))

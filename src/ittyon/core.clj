@@ -29,7 +29,7 @@
       (update-in [:index :aevt] dissoc-in [a e v])
       (update-in [:index :avet] dissoc-in [a v e])))
 
-(defn event-key [state [o e a v t]] [o a])
+(defn revision-key [state [o e a v t]] [o a])
 
 (defn time
   ([] (System/currentTimeMillis))
@@ -45,7 +45,7 @@
     (doseq [p (cons tag parents)] (core/derive h? p))))
 
 (defintent validate
-  :dispatch event-key
+  :dispatch revision-key
   :combine #(and %1 %2)
   :default ::invalid)
 
@@ -64,7 +64,7 @@
   (integer? t))
 
 (defintent reactions
-  :dispatch event-key
+  :dispatch revision-key
   :combine concat
   :default ::no-op)
 
@@ -86,26 +86,26 @@
    :validate  validate
    :reactions reactions})
 
-(defn event? [x]
+(defn revision? [x]
   (and (sequential? x)
        (= (count x) 5)
        (let [[o e a v t] x]
          (and (#{:assert :revoke} o) (keyword? a)))))
 
-(defn valid? [system event]
-  (and (event? event) ((:validate system) (:state system) event)))
+(defn valid? [system revision]
+  (and (revision? revision) ((:validate system) (:state system) revision)))
 
-(defn react [system event]
-  ((:reactions system) (:state system) event))
+(defn react [system revision]
+  ((:reactions system) (:state system) revision))
 
 (defn update [system [o e a v t]]
   (let [f (case o :assert assert, :revoke revoke)]
     (update-in system [:state] f [e a v t])))
 
-(defn commit [system event]
-  (if (valid? system event)
-    (let [system    (update system event)
-          reactions (react system event)]
+(defn commit [system revision]
+  (if (valid? system revision)
+    (let [system    (update system revision)
+          reactions (react system revision)]
       (reduce commit system reactions))
     system))
 

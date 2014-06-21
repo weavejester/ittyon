@@ -47,3 +47,7 @@
           (broadcast server socket event)
           (recur)))
       (swap! sockets disj socket)))
+
+(defn shutdown [{:keys [sockets]}]
+  (doseq [s @sockets]
+    (a/close! s)))

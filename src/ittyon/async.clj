@@ -17,7 +17,9 @@
               (swap! sysref i/recv-client event)
               (recur))
           (close-all! [socket input]))))
-    (a/map> #(conj % (i/time @sysref)) input)))
+    (a/map>
+     (fn [[o e a v]] [:commit [o e a v (i/time @sysref)]])
+     input)))
 
 (defn listen [sysref sockets socket]
   (let [buffer (a/chan 32)]

@@ -4,30 +4,23 @@
             [ittyon.core :as i]))
 
 (defn client [init]
-  (let [local  (a/chan)
-        remote (atom nil)
-        system (atom init)]
-    (go-loop []
-      (when-let [event (<! local)]
-        (some-> @remote (>! event))
-        (swap! system i/recv-client event)
-        (recur)))
-    {:system system
-     :local  local
-     :remote remote}))
+  {:system (atom init)
+   :socket (atom nil)})
 
-(defn connected? [{:keys [remote]}]
-  (not (nil? @remote)))
+(defn connected? [{:keys [socket]}]
+  (not (nil? @socket)))
 
-(defn connect [{:keys [remote system]} socket]
-  (reset! remote socket)
+(defn connect [{:keys [system] :as client} socket]
+  (reset! (:socket client) socket)
   (go-loop []
     (when-let [event (<! socket)]
       (swap! system i/recv-client event)
       (recur))))
 
-(defn send [{:keys [local system]} [o e a v]]
-  (a/put! local [:commit [o e a v (i/time @system)]]))
+(defn send [{:keys [system socket]} [o e a v]]
+  (let [event [:commit [o e a v (i/time @system)]]]
+    (swap! system i/recv-client event)
+    (a/put! @socket event)))
 
 (defn server [init]
   {:system  (atom init)

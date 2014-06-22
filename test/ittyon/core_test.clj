@@ -41,6 +41,15 @@
   (is (i/revision? [:assert :e :a :v :t]))
   (is (i/revision? [:assert :e :a :v :t])))
 
+(deftest test-valid?
+  (let [system i/empty-system
+        entity (i/uuid)
+        time   (i/time)]
+    (i/derive ::name ::i/aspect ::i/singular)
+    (is (not (i/valid? system [:assert entity ::name "alice" time])))
+    (is (not (i/valid? system [:assert entity ::i/live? false time])))
+    (is (i/valid? system [:assert entity ::i/live? true time]))))
+
 (deftest test-commit
   (let [entity (i/uuid)
         time   (i/time)]

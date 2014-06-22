@@ -50,6 +50,18 @@
     (is (not (i/valid? system [:assert entity ::i/live? false time])))
     (is (i/valid? system [:assert entity ::i/live? true time]))))
 
+(deftest test-react
+  (i/derive ::name ::i/aspect ::i/singular)
+  (let [entity (i/uuid)
+        time   (i/time)
+        system (-> i/empty-system
+                   (i/commit [:assert entity ::i/live? true time])
+                   (i/commit [:assert entity ::name "alice" time]))]
+    (is (= (i/react system [:assert entity ::name "bob" time])
+           [[:revoke entity ::name "alice" time]]))
+    (is (= (i/react system [:revoke entity ::i/live? true time])
+           [[:revoke entity ::name "alice" time]]))))
+
 (deftest test-commit
   (let [entity (i/uuid)
         time   (i/time)]

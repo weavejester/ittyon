@@ -73,7 +73,8 @@
 (defconduct reactions [:revoke ::live?] [s [o e a v t]]
   (for [[e avt] (-> s :index :eavt)
         [a vt]  avt
-        [v _]   vt]
+        [v _]   vt
+        :when   (not= a ::live?)]
     [:revoke e a v t]))
 
 (defconduct reactions [:assert ::singular] [s [o e a v t]]

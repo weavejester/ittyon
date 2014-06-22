@@ -12,11 +12,11 @@
                     (i/commit [:assert entity ::i/live? true (i/time)])
                     (i/commit [:assert entity ::name "alice" (i/time)]))
         server  (ia/server system)
-        client  (ia/client i/empty-system)
         a-ch    (a/chan)
-        b-ch    (a/chan)]
-    (ia/connect client (bidi-ch a-ch b-ch))
-    (ia/accept  server (bidi-ch b-ch a-ch))
+        b-ch    (a/chan)
+        client  (ia/connect (bidi-ch a-ch b-ch))]
+    
+    (ia/accept server (bidi-ch b-ch a-ch))
     
     (testing "initial state transferred to client"
       (Thread/sleep 25)

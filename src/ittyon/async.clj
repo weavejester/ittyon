@@ -3,24 +3,21 @@
   (:require [clojure.core.async :as a :refer [go go-loop <! >!]]
             [ittyon.core :as i]))
 
-(defn client [init]
-  {:system (atom init)
-   :socket (atom nil)})
-
-(defn connected? [{:keys [socket]}]
-  (not (nil? @socket)))
-
-(defn connect [{:keys [system] :as client} socket]
-  (reset! (:socket client) socket)
-  (go-loop []
-    (when-let [event (<! socket)]
-      (swap! system i/recv-client event)
-      (recur))))
+(defn connect
+  ([socket] (connect socket i/empty-system))
+  ([socket init]
+     (let [system (atom init)]
+       (go-loop []
+         (when-let [event (<! socket)]
+           (swap! system i/recv-client event)
+           (recur)))
+       {:system system
+        :socket socket})))
 
 (defn send [{:keys [system socket]} [o e a v]]
   (let [event [:commit [o e a v (i/time @system)]]]
     (swap! system i/recv-client event)
-    (a/put! @socket event)))
+    (a/put! socket event)))
 
 (defn server [init]
   {:system  (atom init)

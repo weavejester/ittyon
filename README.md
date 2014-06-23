@@ -3,9 +3,13 @@
 An experimental library designed to manage distributed state for
 near-realtime multiplayer games.
 
-## Usage
+## Installation
 
-FIXME
+Add the following to your project dependencies:
+
+```clojure
+[ittyon "0.0.1"]
+```
 
 ## License
 

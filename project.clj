@@ -28,9 +28,10 @@
    :test-commands {"unit-tests" ["phantomjs" :runner "target/main.js"]}}
   :aliases
   {"test-cljs" ["do" ["cljx" "once"] ["cljsbuild" "test"]]
-   "test-all"  ["do" ["test"] ["cljsbuild" "test"]]}
+   "test-all"  ["do" ["with-profile" "default:+1.6" "test"] ["cljsbuild" "test"]]}
   :profiles
   {:provided {:dependencies [[org.clojure/clojurescript "0.0-2227"]]}
+   :1.6      {:dependencies [[org.clojure/clojure "1.6.0"]]}
    :dev      {:jvm-opts ^:replace {}
               :dependencies [[org.clojure/tools.namespace "0.2.4"]
                              [criterium "0.4.3"]

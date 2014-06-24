@@ -1,8 +1,14 @@
 (ns ittyon.core
   (:refer-clojure :exclude [assert time derive])
+  #+clj
   (:require [clojure.core :as core]
             [medley.core :refer [dissoc-in]]
-            [intentions.core :refer [defintent defconduct]]))
+            [intentions.core :refer [defintent defconduct]])
+  #+cljs
+  (:require [cljs.core :as core]
+            [medley.core :refer [dissoc-in]]
+            [intentions.core :refer-macros [defintent defconduct]]
+            [cljs-uuid.core :as uuid]))
 
 (def empty-state
   {:snapshot {}
@@ -32,12 +38,19 @@
 (defn revision-key [state [o e a v t]] [o a])
 
 (defn time
-  ([] (System/currentTimeMillis))
-  ([system] (+ (time) (:offset system))))
+  ([]
+     #+clj  (System/currentTimeMillis)
+     #+cljs (.getTime (js/Date.)))
+  ([system]
+     (+ (time) (:offset system))))
 
-(defn uuid? [x] (instance? java.util.UUID x))
+(defn uuid? [x]
+  #+clj  (instance? java.util.UUID x)
+  #+cljs (instance? cljs.core.UUID x))
 
-(defn uuid [] (java.util.UUID/randomUUID))
+(defn uuid []
+  #+clj  (java.util.UUID/randomUUID)
+  #+cljs (uuid/make-random))
 
 (defn derive [h? tag & parents]
   (if (map? h?)

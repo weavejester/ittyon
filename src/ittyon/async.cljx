@@ -1,7 +1,13 @@
 (ns ittyon.async
   (:refer-clojure :exclude [send])
+  #+clj
   (:require [clojure.core.async :as a :refer [go go-loop <! >!]]
-            [ittyon.core :as i]))
+            [ittyon.core :as i])
+  #+cljs
+  (:require [cljs.core.async :as a :refer [<! >!]]
+            [ittyon.core :as i])
+  #+cljs
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 (defn connect
   ([socket] (connect socket i/empty-system))

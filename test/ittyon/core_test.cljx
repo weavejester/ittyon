@@ -1,5 +1,6 @@
 (ns ittyon.core-test
-  (:require [clojure.test :refer :all]
+  (:require #+clj  [clojure.test :refer :all]
+            #+cljs [cemerick.cljs.test :as t :refer-macros [is deftest testing]]
             [ittyon.core :as i]))
 
 (def eavt-state

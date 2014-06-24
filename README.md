@@ -2,8 +2,12 @@
 
 [![Build Status](https://travis-ci.org/weavejester/ittyon.svg?branch=master)](https://travis-ci.org/weavejester/ittyon)
 
-An experimental library designed to manage distributed state for
-near-realtime multiplayer games.
+An experimental library designed to manage state in games.
+
+Ittyon draws inspiration from the [entity component][1] model, but
+provides a greater separation between code and data.
+
+[1]: https://en.wikipedia.org/wiki/Entity_component_system
 
 ## Installation
 
@@ -12,6 +16,20 @@ Add the following to your project dependencies:
 ```clojure
 [ittyon "0.0.2"]
 ```
+
+## Overview
+
+Ittyon is structured into __entities__, __aspects__ and __reactions__.
+
+__Entities__ provide identity, and by default are UUIDs chosen at
+random.
+
+__Aspects__ provide state, by associating entities with values. For
+example, an entity might have a `::position` aspect with the value
+`[3 4]`.
+
+__Reactions__ provide the game logic, by evaluating code when certain
+events occur.
 
 ## License
 

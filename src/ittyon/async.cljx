@@ -20,8 +20,10 @@
        {:system system
         :socket socket})))
 
-(defn send [{:keys [system socket]} [o e a v]]
-  (let [event [:commit [o e a v (i/time @system)]]]
+(defn send [{:keys [system socket]} & revisions]
+  (let [time  (i/time @system)
+        revs  (for [r revisions] (conj (vec r) time))
+        event (vec (cons :commit revs))]
     (swap! system i/recv-client event)
     (a/put! socket event)))
 

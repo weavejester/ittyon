@@ -75,3 +75,31 @@
                :snapshot)
            {[entity ::i/live? true] time
             [entity ::name "bob"] time}))))
+
+(deftest test-recv-client
+  (let [entity (i/uuid)
+        time   (i/time)]
+    (i/derive ::name  ::i/aspect ::i/singular)
+    (is (= (-> i/empty-system
+               (i/recv-client
+                [:commit
+                 [:assert entity ::i/live? true time]
+                 [:assert entity ::name "alice" time]])
+               :state
+               :snapshot)
+           {[entity ::i/live? true] time
+            [entity ::name "alice"] time}))))
+
+(deftest test-recv-server
+  (let [entity (i/uuid)
+        time   (i/time)]
+    (i/derive ::name  ::i/aspect ::i/singular)
+    (is (= (-> i/empty-system
+               (i/recv-server
+                [:commit
+                 [:assert entity ::i/live? true time]
+                 [:assert entity ::name "alice" time]])
+               :state
+               :snapshot)
+           {[entity ::i/live? true] time
+            [entity ::name "alice"] time}))))

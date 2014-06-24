@@ -131,15 +131,15 @@
           (reduce commit system))))
 
 (defn recv-server [system event]
-  (if (= (first event) :commit)
-    (commit system (second event))
+  (case (first event)
+    :commit (reduce commit system (rest event))
     system))
 
 (defn recv-client
   ([system event] (recv-client system event (time)))
   ([system event local-time]
      (case (first event)
-       :commit (commit system (second event))
+       :commit (reduce commit system (rest event))
        :reset  (assoc system :state (from-snapshot (second event)))
        :time   (assoc system :offset (- local-time (second event)))
        system)))

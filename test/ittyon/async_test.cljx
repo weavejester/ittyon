@@ -10,14 +10,16 @@
             [ittyon.async :as ia]
             [chord.channels :refer [bidi-ch]]))
 
-(i/derive ::name ::i/aspect ::i/singular)
+(i/derive ::name  ::i/aspect ::i/singular)
+(i/derive ::email ::i/aspect ::i/singular)
 
 (def entity (i/uuid))
 
 (def system
   (-> i/empty-system
       (i/commit [:assert entity ::i/live? true (i/time)])
-      (i/commit [:assert entity ::name "alice" (i/time)])))
+      (i/commit [:assert entity ::name "alice" (i/time)])
+      (i/commit [:assert entity ::email "alice@example.com" (i/time)])))
 
 (defn setup-server-client [system]
   (let [server  (ia/server system)
@@ -37,11 +39,14 @@
              (-> server :system deref :state :snapshot))))
 
     (testing "client events relayed to server"
-      (ia/send client [:assert entity ::name "bob"])
+      (ia/send client [:assert entity ::name "bob"]
+                      [:assert entity ::email "bob@example.com"])
       (Thread/sleep 25)
       (is (= (-> client :system deref :state :snapshot keys set)
              (-> server :system deref :state :snapshot keys set)
-             #{[entity ::i/live? true], [entity ::name "bob"]})))))
+             #{[entity ::i/live? true]
+               [entity ::name "bob"]
+               [entity ::email "bob@example.com"]})))))
 
 #+cljs
 (deftest ^:async test-async
@@ -50,9 +55,12 @@
         (is (= (-> client :system deref :state :snapshot)
                (-> server :system deref :state :snapshot)))
 
-        (ia/send client [:assert entity ::name "bob"])
+        (ia/send client [:assert entity ::name "bob"]
+                        [:assert entity ::email "bob@example.com"])
         (<! (a/timeout 25))
         (is (= (-> client :system deref :state :snapshot keys set)
                (-> server :system deref :state :snapshot keys set)
-               #{[entity ::i/live? true], [entity ::name "bob"]}))
+               #{[entity ::i/live? true]
+                 [entity ::name "bob"]
+                 [entity ::email "bob@example.com"]}))
         (done))))

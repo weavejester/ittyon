@@ -10,7 +10,7 @@ near-realtime multiplayer games.
 Add the following to your project dependencies:
 
 ```clojure
-[ittyon "0.0.1"]
+[ittyon "0.0.2"]
 ```
 
 ## License

@@ -9,16 +9,19 @@
   #+cljs
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
-(defn connect
-  ([socket] (connect socket i/empty-system))
-  ([socket init]
-     (let [system (atom init)]
-       (go-loop []
-         (when-let [event (<! socket)]
-           (swap! system i/recv-client event)
-           (recur)))
-       {:system system
-        :socket socket})))
+(defn client [init]
+  {:system (atom init)
+   :socket nil})
+
+(defn connected? [client]
+  (not (nil? (:socket client))))
+
+(defn connect [{:keys [system] :as client} socket]
+  (go-loop []
+    (when-let [event (<! socket)]
+      (swap! system i/recv-client event)
+      (recur)))
+  (assoc client :socket socket))
 
 (defn send [{:keys [system socket]} & revisions]
   (let [time  (i/time @system)
@@ -46,6 +49,28 @@
           (recur)))
       (swap! sockets disj socket)))
 
-(defn shutdown [{:keys [sockets]}]
-  (doseq [s @sockets]
-    (a/close! s)))
+(defn ticker [system rate]
+  (let [ideal (/ 1000 rate)
+        valve (a/chan)]
+    (go-loop []
+      (let [start-time (i/time)]
+        (swap! system i/tick)
+        (let [duration  (- (i/time) start-time)
+              wait-time (max 0 (- ideal duration))
+              [_ port]  (a/alts! [valve (a/timeout wait-time)])]
+          (when-not (identical? port valve)
+            (recur)))))
+    valve))
+
+(defn add-ticker [client-or-server rate]
+  (let [system (:system client-or-server)]
+    (assoc client-or-server :ticker (ticker system rate))))
+
+(defn shutdown [{:keys [sockets socket ticker]}]
+  (when ticker
+    (a/close! ticker))
+  (when socket
+    (a/close! socket))
+  (when sockets
+    (doseq [s @sockets]
+      (a/close! s))))

@@ -53,7 +53,6 @@
                [entity ::name "bob"]
                [entity ::email "bob@example.com"]
                [entity ::clock 0]})))
-
     (ia/shutdown server)
     (ia/shutdown client)))
 
@@ -76,7 +75,6 @@
                    [entity ::name "bob"]
                    [entity ::email "bob@example.com"]
                    [entity ::clock 0]})))
-
         (ia/shutdown server)
         (ia/shutdown client)
         (done))))
@@ -86,30 +84,28 @@
     [[:assert e a (+ v (- t1 t0)) t1]]))
 
 #+clj
-(deftest test-ticker
-  (let [client (-> (ia/client system)
-                   (ia/add-ticker 100))
-        system (:system client)]
+(deftest test-periodically
+  (let [client (ia/client system)
+        system (:system client)
+        ticker (ia/periodically 100 #(swap! system i/tick))]
     (Thread/sleep 30)
     (is (> (-> @system :state :index :eavt (get entity) ::clock keys first)
            20))
     (Thread/sleep 30)
     (is (> (-> @system :state :index :eavt (get entity) ::clock keys first)
            40))
-
-    (ia/shutdown client)))
+    (a/close! ticker)))
 
 #+cljs
-(deftest ^:async test-ticker
-  (let [client (-> (ia/client system)
-                   (ia/add-ticker 100))
-        system (:system client)]
+(deftest ^:async test-periodically
+  (let [client (ia/client system)
+        system (:system client)
+        ticker (ia/periodically 100 #(swap! system i/tick))]
     (go (<! (a/timeout 30))
         (is (> (-> @system :state :index :eavt (get entity) ::clock keys first)
                20))
         (<! (a/timeout 30))
         (is (> (-> @system :state :index :eavt (get entity) ::clock keys first)
                40))
-
-        (ia/shutdown client)
+        (a/close! ticker)
         (done))))

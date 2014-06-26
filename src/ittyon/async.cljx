@@ -49,12 +49,12 @@
           (recur)))
       (swap! sockets disj socket)))
 
-(defn ticker [system rate]
+(defn periodically [rate f]
   (let [ideal (/ 1000 rate)
         valve (a/chan)]
     (go-loop []
       (let [start-time (i/time)]
-        (swap! system i/tick)
+        (f)
         (let [duration  (- (i/time) start-time)
               wait-time (max 0 (- ideal duration))
               [_ port]  (a/alts! [valve (a/timeout wait-time)])]
@@ -62,13 +62,7 @@
             (recur)))))
     valve))
 
-(defn add-ticker [client-or-server rate]
-  (let [system (:system client-or-server)]
-    (assoc client-or-server :ticker (ticker system rate))))
-
-(defn shutdown [{:keys [sockets socket ticker]}]
-  (when ticker
-    (a/close! ticker))
+(defn shutdown [{:keys [sockets socket]}]
   (when socket
     (a/close! socket))
   (when sockets

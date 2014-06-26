@@ -61,10 +61,3 @@
           (when-not (identical? port valve)
             (recur)))))
     valve))
-
-(defn shutdown [{:keys [sockets socket]}]
-  (when socket
-    (a/close! socket))
-  (when sockets
-    (doseq [s @sockets]
-      (a/close! s))))

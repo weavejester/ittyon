@@ -52,9 +52,7 @@
              #{[entity ::i/live? true]
                [entity ::name "bob"]
                [entity ::email "bob@example.com"]
-               [entity ::clock 0]})))
-    (ia/shutdown server)
-    (ia/shutdown client)))
+               [entity ::clock 0]})))))
 
 #+cljs
 (deftest ^:async test-async
@@ -75,8 +73,6 @@
                    [entity ::name "bob"]
                    [entity ::email "bob@example.com"]
                    [entity ::clock 0]})))
-        (ia/shutdown server)
-        (ia/shutdown client)
         (done))))
 
 (defconduct i/reactions [:tick ::clock] [s [o e a t1]]

@@ -130,16 +130,29 @@
           (mapcat (fn [[[e a _] _]] (react system [:tick e a time])))
           (reduce commit system))))
 
-(defn recv-server [system event]
-  (case (first event)
-    :commit (reduce commit system (rest event))
-    system))
+#+clj
+(defn periodically [freq func]
+  (let [ideal (/ 1000 freq)
+        stop? (atom false)]
+    (future
+      (loop []
+        (when-not @stop?
+          (let [start (time)]
+            (func)
+            (let [duration (- (time) start)]
+              (Thread/sleep (max 0 (- ideal duration)))
+              (recur))))))
+    #(reset! stop? true)))
 
-(defn recv-client
-  ([system event] (recv-client system event (time)))
-  ([system event local-time]
-     (case (first event)
-       :commit (reduce commit system (rest event))
-       :reset  (assoc system :state (from-snapshot (second event)))
-       :time   (assoc system :offset (- local-time (second event)))
-       system)))
+#+cljs
+(defn periodically [freq func]
+  (let [ideal (/ 1000 freq)
+        stop? (atom false)]
+    (letfn [(callback []
+              (when-not @stop?
+                (let [start (time)]
+                  (func)
+                  (let [duration (- (time) start)]
+                    (js/setTimeout callback (max 0 (- ideal duration)))))))]
+      (callback)
+      #(reset! stop? true))))

@@ -1,6 +1,6 @@
 (ns ittyon.core-test
   (:require #+clj  [clojure.test :refer :all]
-            #+cljs [cemerick.cljs.test :as t :refer-macros [is deftest testing]]
+            #+cljs [cemerick.cljs.test :as t :refer-macros [is deftest testing done]]
             [ittyon.core :as i]))
 
 (def eavt-state
@@ -76,30 +76,20 @@
            {[entity ::i/live? true] time
             [entity ::name "bob"] time}))))
 
-(deftest test-recv-client
-  (let [entity (i/uuid)
-        time   (i/time)]
-    (i/derive ::name  ::i/aspect ::i/singular)
-    (is (= (-> i/empty-system
-               (i/recv-client
-                [:commit
-                 [:assert entity ::i/live? true time]
-                 [:assert entity ::name "alice" time]])
-               :state
-               :snapshot)
-           {[entity ::i/live? true] time
-            [entity ::name "alice"] time}))))
+#+clj
+(deftest test-periodically
+  (let [counter (atom 0)
+        stop    (i/periodically 100 #(swap! counter inc))]
+    (Thread/sleep 30)
+    (is (>= @counter 2))
+    (stop)))
 
-(deftest test-recv-server
-  (let [entity (i/uuid)
-        time   (i/time)]
-    (i/derive ::name  ::i/aspect ::i/singular)
-    (is (= (-> i/empty-system
-               (i/recv-server
-                [:commit
-                 [:assert entity ::i/live? true time]
-                 [:assert entity ::name "alice" time]])
-               :state
-               :snapshot)
-           {[entity ::i/live? true] time
-            [entity ::name "alice"] time}))))
+#+cljs
+(deftest ^:async test-periodically
+  (let [counter (atom 0)
+        stop    (i/periodically 100 #(swap! counter inc))]
+    (js/setTimeout (fn []
+                     (is (>= @counter 2))
+                     (stop)
+                     (done))
+                   30)))

@@ -21,14 +21,14 @@ Add the following to your project dependencies:
 
 Ittyon is structured into __entities__, __aspects__ and __reactions__.
 
-__Entities__ provide identity, and by default are UUIDs chosen at
+Entities provide identity, and by default are UUIDs chosen at
 random.
 
-__Aspects__ provide state, by associating entities with values. For
+Aspects provide state, by associating entities with values. For
 example, an entity might have a `::position` aspect with the value
 `[3 4]`.
 
-__Reactions__ provide the game logic, by evaluating code when certain
+Reactions provide the game logic, by evaluating code when certain
 events occur.
 
 ## License

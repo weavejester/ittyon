@@ -7,26 +7,26 @@
             [medley.core :refer [deref-reset!]]))
 
 (defn server [init]
-  {:system  (atom init)
+  {:engine  (atom init)
    :sockets (atom #{})})
 
 (defn broadcast [{:keys [sockets]} socket message]
   (doseq [sock @sockets :when (not= sock socket)]
     (a/put! sock message)))
 
-(defn receive [system event]
+(defn receive [engine event]
   (case (first event)
-    :commit (reduce i/commit system (rest event))
-    system))
+    :commit (reduce i/commit engine (rest event))
+    engine))
 
-(defn accept [{:keys [sockets system] :as server} socket]
+(defn accept [{:keys [sockets engine] :as server} socket]
   (when @sockets
     (go (>! socket [:time (i/time)])
-        (>! socket [:reset (-> @system :state :snapshot)])
+        (>! socket [:reset (-> @engine :state :snapshot)])
         (when (swap! sockets #(some-> % (conj socket)))
           (loop []
             (when-let [event (<! socket)]
-              (swap! system receive event)
+              (swap! engine receive event)
               (broadcast server socket event)
               (recur)))
           (swap! sockets disj socket))

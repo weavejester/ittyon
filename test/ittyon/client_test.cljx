@@ -8,7 +8,7 @@
   (let [entity (i/uuid)
         time   (i/time)]
     (i/derive ::name  ::i/aspect ::i/singular)
-    (is (= (-> i/empty-system
+    (is (= (-> i/empty-engine
                (client/receive
                 [:commit
                  [:assert entity ::i/live? true time]

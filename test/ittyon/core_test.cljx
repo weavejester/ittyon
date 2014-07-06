@@ -43,31 +43,31 @@
   (is (i/revision? [:assert :e :a :v :t])))
 
 (deftest test-valid?
-  (let [system i/empty-system
+  (let [engine i/empty-engine
         entity (i/uuid)
         time   (i/time)]
     (i/derive ::name ::i/aspect ::i/singular)
-    (is (not (i/valid? system [:assert entity ::name "alice" time])))
-    (is (not (i/valid? system [:assert entity ::i/live? false time])))
-    (is (i/valid? system [:assert entity ::i/live? true time]))))
+    (is (not (i/valid? engine [:assert entity ::name "alice" time])))
+    (is (not (i/valid? engine [:assert entity ::i/live? false time])))
+    (is (i/valid? engine [:assert entity ::i/live? true time]))))
 
 (deftest test-react
   (i/derive ::name ::i/aspect ::i/singular)
   (let [entity (i/uuid)
         time   (i/time)
-        system (-> i/empty-system
+        engine (-> i/empty-engine
                    (i/commit [:assert entity ::i/live? true time])
                    (i/commit [:assert entity ::name "alice" time]))]
-    (is (= (i/react system [:assert entity ::name "bob" time])
+    (is (= (i/react engine [:assert entity ::name "bob" time])
            [[:revoke entity ::name "alice" time]]))
-    (is (= (i/react system [:revoke entity ::i/live? true time])
+    (is (= (i/react engine [:revoke entity ::i/live? true time])
            [[:revoke entity ::name "alice" time]]))))
 
 (deftest test-commit
   (let [entity (i/uuid)
         time   (i/time)]
     (i/derive ::name ::i/aspect ::i/singular)
-    (is (= (-> i/empty-system
+    (is (= (-> i/empty-engine
                (i/commit [:assert entity ::i/live? true time])
                (i/commit [:assert entity ::name "alice" time])
                (i/commit [:assert entity ::name "bob" time])

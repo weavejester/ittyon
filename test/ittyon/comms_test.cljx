@@ -19,15 +19,15 @@
 
 (def entity (i/uuid))
 
-(def system
-  (-> i/empty-system
+(def engine
+  (-> i/empty-engine
       (i/commit [:assert entity ::i/live? true (i/time)])
       (i/commit [:assert entity ::name "alice" (i/time)])
       (i/commit [:assert entity ::email "alice@example.com" (i/time)])
       (i/commit [:assert entity ::clock 0 (i/time)])))
 
-(defn setup-server-client [system]
-  (let [server  (server/server system)
+(defn setup-server-client [engine]
+  (let [server  (server/server engine)
         a-ch    (a/chan)
         b-ch    (a/chan)
         client  (client/connect (bidi-ch a-ch b-ch))]
@@ -36,19 +36,19 @@
 
 #+clj
 (deftest test-async
-  (let [[server client] (setup-server-client system)]
+  (let [[server client] (setup-server-client engine)]
     
     (testing "initial state transferred to client"
       (Thread/sleep 25)
-      (is (= (-> client :system deref :state :snapshot)
-             (-> server :system deref :state :snapshot))))
+      (is (= (-> client :engine deref :state :snapshot)
+             (-> server :engine deref :state :snapshot))))
 
     (testing "client events relayed to server"
       (client/send client [:assert entity ::name "bob"]
                           [:assert entity ::email "bob@example.com"])
       (Thread/sleep 25)
-      (is (= (-> client :system deref :state :snapshot keys set)
-             (-> server :system deref :state :snapshot keys set)
+      (is (= (-> client :engine deref :state :snapshot keys set)
+             (-> server :engine deref :state :snapshot keys set)
              #{[entity ::i/live? true]
                [entity ::name "bob"]
                [entity ::email "bob@example.com"]
@@ -56,19 +56,19 @@
 
 #+cljs
 (deftest ^:async test-async
-  (let [[server client] (setup-server-client system)]
+  (let [[server client] (setup-server-client engine)]
     
     (go (testing "initial state transferred to client"
           (<! (a/timeout 25))
-          (is (= (-> client :system deref :state :snapshot)
-                 (-> server :system deref :state :snapshot))))
+          (is (= (-> client :engine deref :state :snapshot)
+                 (-> server :engine deref :state :snapshot))))
 
         (testing "client events relayed to server"
           (client/send client [:assert entity ::name "bob"]
                               [:assert entity ::email "bob@example.com"])
           (<! (a/timeout 25))
-          (is (= (-> client :system deref :state :snapshot keys set)
-                 (-> server :system deref :state :snapshot keys set)
+          (is (= (-> client :engine deref :state :snapshot keys set)
+                 (-> server :engine deref :state :snapshot keys set)
                  #{[entity ::i/live? true]
                    [entity ::name "bob"]
                    [entity ::email "bob@example.com"]

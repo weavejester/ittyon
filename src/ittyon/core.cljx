@@ -41,8 +41,8 @@
   ([]
      #+clj  (System/currentTimeMillis)
      #+cljs (.getTime (js/Date.)))
-  ([system]
-     (+ (time) (:offset system))))
+  ([engine]
+     (+ (time) (:offset engine))))
 
 (defn uuid? [x]
   #+clj  (instance? java.util.UUID x)
@@ -94,7 +94,7 @@
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
     [:revoke e a v* t]))
 
-(def empty-system
+(def empty-engine
   {:state     empty-state
    :offset    0
    :validate  validate
@@ -106,29 +106,29 @@
        (let [[o e a v t] x]
          (and (#{:assert :revoke} o) (keyword? a)))))
 
-(defn valid? [system revision]
-  (and (revision? revision) ((:validate system) (:state system) revision)))
+(defn valid? [engine revision]
+  (and (revision? revision) ((:validate engine) (:state engine) revision)))
 
-(defn react [system revision]
-  ((:reactions system) (:state system) revision))
+(defn react [engine revision]
+  ((:reactions engine) (:state engine) revision))
 
-(defn update [system [o e a v t]]
+(defn update [engine [o e a v t]]
   (let [f (case o :assert assert, :revoke revoke)]
-    (update-in system [:state] f [e a v t])))
+    (update-in engine [:state] f [e a v t])))
 
-(defn commit [system revision]
-  (if (valid? system revision)
-    (let [system    (update system revision)
-          reactions (react system revision)]
-      (reduce commit system reactions))
-    system))
+(defn commit [engine revision]
+  (if (valid? engine revision)
+    (let [engine    (update engine revision)
+          reactions (react engine revision)]
+      (reduce commit engine reactions))
+    engine))
 
 (defn tick
-  ([system] (tick system (time system)))
-  ([system time]
-     (->> (get-in system [:state :snapshot])
-          (mapcat (fn [[[e a _] _]] (react system [:tick e a time])))
-          (reduce commit system))))
+  ([engine] (tick engine (time engine)))
+  ([engine time]
+     (->> (get-in engine [:state :snapshot])
+          (mapcat (fn [[[e a _] _]] (react engine [:tick e a time])))
+          (reduce commit engine))))
 
 #+clj
 (defn periodically [freq func]

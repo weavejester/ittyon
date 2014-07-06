@@ -10,29 +10,29 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 (defn receive
-  ([system event] (receive system event (i/time)))
-  ([system event local-time]
+  ([engine event] (receive engine event (i/time)))
+  ([engine event local-time]
      (case (first event)
-       :commit (reduce i/commit system (rest event))
-       :reset  (assoc system :state (i/from-snapshot (second event)))
-       :time   (assoc system :offset (- local-time (second event)))
-       system)))
+       :commit (reduce i/commit engine (rest event))
+       :reset  (assoc engine :state (i/from-snapshot (second event)))
+       :time   (assoc engine :offset (- local-time (second event)))
+       engine)))
 
 (defn connect
-  ([socket] (connect socket i/empty-system))
+  ([socket] (connect socket i/empty-engine))
   ([socket init]
-     (let [system (atom init)]
+     (let [engine (atom init)]
        (go-loop []
          (when-let [event (<! socket)]
-           (swap! system receive event)
+           (swap! engine receive event)
            (recur)))
-       {:system system
+       {:engine engine
         :socket socket})))
 
-(defn send [{:keys [system socket]} & revisions]
-  (let [time  (i/time @system)
+(defn send [{:keys [engine socket]} & revisions]
+  (let [time  (i/time @engine)
         revs  (for [r revisions] (conj (vec r) time))
         event (vec (cons :commit revs))]
-    (swap! system receive event)
+    (swap! engine receive event)
     (a/put! socket event)))
 

@@ -15,7 +15,7 @@
      (case (first event)
        :commit (reduce i/commit engine (rest event))
        :reset  (assoc engine :state (i/from-snapshot (second event)))
-       :time   (assoc engine :offset (- local-time (second event)))
+       :time   (assoc engine :time-offset (- local-time (second event)))
        engine)))
 
 (defn connect

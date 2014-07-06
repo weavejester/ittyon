@@ -42,7 +42,7 @@
      #+clj  (System/currentTimeMillis)
      #+cljs (.getTime (js/Date.)))
   ([engine]
-     (+ (time) (:offset engine))))
+     (+ (time) (:time-offset engine))))
 
 (defn uuid? [x]
   #+clj  (instance? java.util.UUID x)
@@ -95,10 +95,10 @@
     [:revoke e a v* t]))
 
 (def empty-engine
-  {:state     empty-state
-   :offset    0
-   :validate  validate
-   :reactions reactions})
+  {:state       empty-state
+   :time-offset 0
+   :validate    validate
+   :reactions   reactions})
 
 (defn revision? [x]
   (and (sequential? x)

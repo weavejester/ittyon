@@ -21,13 +21,16 @@
 (defn connect
   ([socket] (connect socket i/empty-engine))
   ([socket init]
-     (let [engine (atom init)]
+     (let [engine (atom init)
+           client (a/chan)]
        (go-loop []
          (when-let [event (<! socket)]
            (swap! engine receive event)
+           (when (= (first event) :reset)
+             (>! client {:engine engine, :socket socket})
+             (a/close! client))
            (recur)))
-       {:engine engine
-        :socket socket})))
+       client)))
 
 (defn send [{:keys [engine socket]} & revisions]
   (let [time  (i/time @engine)
@@ -35,4 +38,3 @@
         event (vec (cons :commit revs))]
     (swap! engine receive event)
     (a/put! socket event)))
-

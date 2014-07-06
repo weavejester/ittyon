@@ -5,8 +5,8 @@
                    [intentions.core :refer [defconduct]])
   (:require #+clj  [clojure.test :refer :all]
             #+cljs [cemerick.cljs.test :as t]
-            #+clj  [clojure.core.async :as a :refer [go]]
-            #+cljs [cljs.core.async :as a]
+            #+clj  [clojure.core.async :as a :refer [go <! <!!]]
+            #+cljs [cljs.core.async :as a :refer [<!]]
             #+clj  [intentions.core :refer [defconduct]]
             [ittyon.core :as i]
             [ittyon.client :as client]
@@ -32,11 +32,11 @@
         b-ch    (a/chan)
         client  (client/connect (bidi-ch a-ch b-ch))]
     (server/accept server (bidi-ch b-ch a-ch))
-    [server client]))
+    (go [server (<! client)])))
 
 #+clj
 (deftest test-async
-  (let [[server client] (setup-server-client engine)]
+  (let [[server client] (<!! (setup-server-client engine))]
     
     (testing "initial state transferred to client"
       (Thread/sleep 25)
@@ -56,9 +56,9 @@
 
 #+cljs
 (deftest ^:async test-async
-  (let [[server client] (setup-server-client engine)]
-    
-    (go (testing "initial state transferred to client"
+  (go (let [[server client] (<! (setup-server-client engine))]
+
+        (testing "initial state transferred to client"
           (<! (a/timeout 25))
           (is (= (-> client :engine deref :state :snapshot)
                  (-> server :engine deref :state :snapshot))))

@@ -15,7 +15,7 @@ provides a greater separation between code and data.
 Add the following to your project dependencies:
 
 ```clojure
-[ittyon "0.0.7"]
+[ittyon "0.0.8"]
 ```
 
 ## Overview

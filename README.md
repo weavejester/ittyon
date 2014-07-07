@@ -2,7 +2,8 @@
 
 [![Build Status](https://travis-ci.org/weavejester/ittyon.svg?branch=master)](https://travis-ci.org/weavejester/ittyon)
 
-An experimental library designed to manage state in games.
+An experimental library designed to manage state in games. The API is
+still currently in flux.
 
 Ittyon draws inspiration from the [entity component][1] model, but
 provides a greater separation between code and data.

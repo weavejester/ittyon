@@ -34,6 +34,20 @@
              (derive ::a ::b)
              (derive ::a ::c)))))
 
+(deftest test-entity
+  (i/derive ::name ::i/aspect ::i/singular)
+  (i/derive ::pets ::i/aspect)
+  (let [entity (i/uuid)
+        time   (i/time)
+        state  (-> i/empty-state
+                   (i/assert [entity ::i/live? true time])
+                   (i/assert [entity ::name "alice" time])
+                   (i/assert [entity ::pets "rover" time])
+                   (i/assert [entity ::pets "rex" time]))]
+    (is (= (i/entity state entity)
+           {::name "alice"
+            ::pets #{"rover" "rex"}}))))
+
 (deftest test-revision?
   (is (not (i/revision? nil)))
   (is (not (i/revision? [:o :e :a :v :t])))

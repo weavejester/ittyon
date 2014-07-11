@@ -94,6 +94,17 @@
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
     [:revoke e a v* t]))
 
+(defn entity [state id]
+  (persistent!
+   (reduce-kv
+    (fn [m k v]
+      (cond
+       (isa? k ::live?)    m
+       (isa? k ::singular) (assoc! m k (first (keys v)))
+       :else               (assoc! m k (set (keys v)))))
+    (transient {})
+    (get-in state [:index :eavt id]))))
+
 (def empty-engine
   {:state       empty-state
    :time-offset 0

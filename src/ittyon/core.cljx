@@ -95,15 +95,16 @@
     [:revoke e a v* t]))
 
 (defn entity [state id]
-  (persistent!
-   (reduce-kv
-    (fn [m k v]
-      (cond
-       (isa? k ::live?)    m
-       (isa? k ::singular) (assoc! m k (first (keys v)))
-       :else               (assoc! m k (set (keys v)))))
-    (transient {})
-    (get-in state [:index :eavt id]))))
+  (if-let [aspects (get-in state [:index :eavt id])]
+    (persistent!
+     (reduce-kv
+      (fn [m k v]
+        (cond
+         (isa? k ::live?)    m
+         (isa? k ::singular) (assoc! m k (first (keys v)))
+         :else               (assoc! m k (set (keys v)))))
+      (transient {::id id})
+      aspects))))
 
 (def empty-engine
   {:state       empty-state

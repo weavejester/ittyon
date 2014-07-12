@@ -37,15 +37,16 @@
 (deftest test-entity
   (i/derive ::name ::i/aspect ::i/singular)
   (i/derive ::pets ::i/aspect)
-  (let [entity (i/uuid)
+  (let [ent-id (i/uuid)
         time   (i/time)
         state  (-> i/empty-state
-                   (i/assert [entity ::i/live? true time])
-                   (i/assert [entity ::name "alice" time])
-                   (i/assert [entity ::pets "rover" time])
-                   (i/assert [entity ::pets "rex" time]))]
-    (is (= (i/entity state entity)
-           {::name "alice"
+                   (i/assert [ent-id ::i/live? true time])
+                   (i/assert [ent-id ::name "alice" time])
+                   (i/assert [ent-id ::pets "rover" time])
+                   (i/assert [ent-id ::pets "rex" time]))]
+    (is (= (i/entity state ent-id)
+           {::i/id ent-id
+            ::name "alice"
             ::pets #{"rover" "rex"}}))))
 
 (deftest test-revision?

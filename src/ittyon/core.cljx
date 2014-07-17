@@ -102,7 +102,7 @@
         (cond
          (isa? k ::live?)    m
          (isa? k ::singular) (assoc! m k (first (keys v)))
-         :else               (assoc! m k (set (keys v)))))
+         :else               (assoc! m k (mapv key (sort-by val v)))))
       (transient {::id id})
       aspects))))
 

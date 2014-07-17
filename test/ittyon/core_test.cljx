@@ -42,12 +42,12 @@
         state  (-> i/empty-state
                    (i/assert [ent-id ::i/live? true time])
                    (i/assert [ent-id ::name "alice" time])
-                   (i/assert [ent-id ::pets "rover" time])
+                   (i/assert [ent-id ::pets "rover" (inc time)])
                    (i/assert [ent-id ::pets "rex" time]))]
     (is (= (i/entity state ent-id)
            {::i/id ent-id
             ::name "alice"
-            ::pets #{"rover" "rex"}}))))
+            ::pets ["rex" "rover"]}))))
 
 (deftest test-revision?
   (is (not (i/revision? nil)))

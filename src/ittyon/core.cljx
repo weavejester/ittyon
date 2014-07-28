@@ -70,6 +70,9 @@
 (defconduct validate [:assert ::aspect] [s [o e a v t]]
   (and (uuid? e) (integer? t) (get-in s [:index :eavt e ::live?])))
 
+(defconduct validate [:assert ::ref] [s [o e a v t]]
+  (get-in s [:index :eavt v]))
+
 (defconduct validate [:revoke ::live?] [_ [o e a v t]]
   (integer? t))
 
@@ -83,12 +86,21 @@
 
 (defconduct reactions ::no-op [_ _] '())
 
-(defconduct reactions [:revoke ::live?] [s [o e a v t]]
-  (for [[e avt] (-> s :index :eavt)
-        [a vt]  avt
-        [v _]   vt
-        :when   (not= a ::live?)]
+(defn- revoke-aspects [s e t]
+  (for [[a vt] (get-in s [:index :eavt e])
+        [v _]  vt
+        :when  (not= a ::live?)]
     [:revoke e a v t]))
+
+(defn- revoke-refs [s v t]
+  (for [a     (cons ::ref (descendants ::ref))
+        [e _] (get-in s [:index :avet a v])
+        :when e]
+    [:revoke e a v t]))
+
+(defconduct reactions [:revoke ::live?] [s [o e a v t]]
+  (concat (revoke-aspects s e t)
+          (revoke-refs s e t)))
 
 (defconduct reactions [:assert ::singular] [s [o e a v t]]
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]

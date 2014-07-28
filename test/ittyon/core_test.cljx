@@ -108,3 +108,20 @@
                      (stop)
                      (done))
                    30)))
+
+(deftest test-refs
+  (i/derive ::name ::i/aspect ::i/singular)
+  (i/derive ::child ::i/aspect ::i/ref)
+  (let [parent-id (i/uuid)
+        child-id  (i/uuid)
+        time      (i/time)
+        engine    (-> i/empty-engine
+                      (i/commit [:assert parent-id ::i/live? true time])
+                      (i/commit [:assert parent-id ::name "alice" time])
+                      (i/commit [:assert child-id ::i/live? true time])
+                      (i/commit [:assert child-id ::name "bob" time])
+                      (i/commit [:assert parent-id ::child child-id time]))
+        engine*   (-> engine
+                      (i/commit [:revoke child-id ::i/live? true time]))]
+    (is (get-in engine [:state :snapshot [parent-id ::child child-id]]))
+    (is (not (get-in engine* [:state :snapshot [parent-id ::child child-id]])))))

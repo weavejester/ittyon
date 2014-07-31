@@ -34,7 +34,7 @@
              (derive ::a ::b)
              (derive ::a ::c)))))
 
-(deftest test-entity
+(deftest test-find
   (i/derive ::name ::i/aspect ::i/singular)
   (i/derive ::pets ::i/aspect)
   (let [ent-id (i/uuid)
@@ -44,10 +44,22 @@
                    (i/assert [ent-id ::name "alice" time])
                    (i/assert [ent-id ::pets "rover" (inc time)])
                    (i/assert [ent-id ::pets "rex" time]))]
-    (is (= (i/entity state ent-id)
-           {::i/id ent-id
-            ::name "alice"
-            ::pets ["rex" "rover"]}))))
+    (is (= (i/find state ent-id ::i/id) ent-id))
+    (is (= (i/find state ent-id ::name) "alice"))
+    (is (= (i/find state ent-id ::pets) ["rex" "rover"]))))
+
+(deftest test-entity
+  (i/derive ::name ::i/aspect ::i/singular)
+  (let [ent-id (i/uuid)
+        time   (i/time)
+        state  (-> i/empty-state
+                   (i/assert [ent-id ::i/live? true time])
+                   (i/assert [ent-id ::name "alice" time]))
+        entity (i/entity state ent-id)]
+    (is (= (entity ::i/id) ent-id))
+    (is (= (get entity ::name) "alice"))
+    (is (= (entity ::sex :female) :female))
+    (is (= (get entity ::age 18) 18))))
 
 (deftest test-revision?
   (is (not (i/revision? nil)))

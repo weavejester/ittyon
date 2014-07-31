@@ -1,5 +1,5 @@
 (ns ittyon.core
-  (:refer-clojure :exclude [assert time derive])
+  (:refer-clojure :exclude [assert time derive find])
   #+clj
   (:require [clojure.core :as core]
             [medley.core :refer [dissoc-in]]
@@ -106,17 +106,36 @@
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
     [:revoke e a v* t]))
 
+(defn- find-with [f s e a d]
+  (let [value (get-in s [:index :eavt e a] ::not-found)]
+    (if (= value ::not-found)
+      d
+      (f value))))
+
+(defn find
+  ([s e a] (find s e a nil))
+  ([s e a d]
+     (cond
+      (= a ::id)          e
+      (isa? a ::singular) (find-with (comp first keys) s e a d)
+      :else               (find-with #(mapv key (sort-by val %)) s e a d))))
+
 (defn entity [state id]
-  (if-let [aspects (get-in state [:index :eavt id])]
-    (persistent!
-     (reduce-kv
-      (fn [m k v]
-        (cond
-         (isa? k ::live?)    m
-         (isa? k ::singular) (assoc! m k (first (keys v)))
-         :else               (assoc! m k (mapv key (sort-by val v)))))
-      (transient {::id id})
-      aspects))))
+  (let [getter (memoize #(find state id %1 %2))]
+    #+clj  (reify
+             clojure.lang.IFn
+             (invoke [_ aspect] (getter aspect nil))
+             (invoke [_ aspect not-found] (getter aspect not-found))
+             clojure.lang.ILookup
+             (valAt [_ aspect] (getter aspect nil))
+             (valAt [_ aspect not-found] (getter aspect not-found)))
+    #+cljs (reify
+             IFn
+             (-invoke [_ aspect] (getter aspect nil))
+             (-invoke [_ aspect not-found] (getter aspect not-found))
+             ILookup
+             (-lookup [_ aspect] (getter aspect nil))
+             (-lookup [_ aspect not-found] (getter aspect not-found)))))
 
 (def empty-engine
   {:state       empty-state

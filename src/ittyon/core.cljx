@@ -106,19 +106,33 @@
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
     [:revoke e a v* t]))
 
-(defn- find-with [f s e a d]
-  (let [value (get-in s [:index :eavt e a] ::not-found)]
-    (if (= value ::not-found)
+(defmulti aspect-value
+  (fn [a v] a))
+
+(defmethod aspect-value ::singular [a v]
+  (first (keys v)))
+
+(defmethod aspect-value :default [a v]
+  (mapv key (sort-by val v)))
+
+(defn- get-in-with [m ks f d]
+  (let [v (get-in m ks ::not-found)]
+    (if (= v ::not-found)
       d
-      (f value))))
+      (f v))))
+
+(defn- reverse-ref [a]
+  (if (re-find #"^_" (name a))
+    (keyword (namespace a) (subs (name a) 1))))
 
 (defn find
   ([s e a] (find s e a nil))
   ([s e a d]
-     (cond
-      (= a ::id)          e
-      (isa? a ::singular) (find-with (comp first keys) s e a d)
-      :else               (find-with #(mapv key (sort-by val %)) s e a d))))
+     (if (= a ::id)
+       e
+       (if-let [a (reverse-ref a)]
+         (get-in-with s [:index :avet a e] #(aspect-value :default %) d)
+         (get-in-with s [:index :eavt e a] #(aspect-value a %) d)))))
 
 (defn entity [state id]
   (let [getter (memoize #(find state id %1 %2))]

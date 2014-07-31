@@ -36,17 +36,26 @@
 
 (deftest test-find
   (i/derive ::name ::i/aspect ::i/singular)
-  (i/derive ::pets ::i/aspect)
-  (let [ent-id (i/uuid)
-        time   (i/time)
-        state  (-> i/empty-state
-                   (i/assert [ent-id ::i/live? true time])
-                   (i/assert [ent-id ::name "alice" time])
-                   (i/assert [ent-id ::pets "rover" (inc time)])
-                   (i/assert [ent-id ::pets "rex" time]))]
-    (is (= (i/find state ent-id ::i/id) ent-id))
-    (is (= (i/find state ent-id ::name) "alice"))
-    (is (= (i/find state ent-id ::pets) ["rex" "rover"]))))
+  (i/derive ::pet ::i/aspect)
+  (i/derive ::child ::i/aspect ::i/ref)
+  (let [parent-id (i/uuid)
+        child-id  (i/uuid)
+        time      (i/time)
+        state     (-> i/empty-state
+                      (i/assert [parent-id ::i/live? true time])
+                      (i/assert [parent-id ::name "alice" time])
+                      (i/assert [child-id ::i/live? true time])
+                      (i/assert [child-id ::name "bob" time])
+                      (i/assert [parent-id ::child child-id time])
+                      (i/assert [parent-id ::pet "rover" (inc time)])
+                      (i/assert [parent-id ::pet "rex" time]))]
+    (is (= (i/find state parent-id ::i/id) parent-id))
+    (is (= (i/find state parent-id ::name) "alice"))
+    (is (= (i/find state parent-id ::pet) ["rex" "rover"]))
+    (is (= (i/find state parent-id ::child) [child-id]))
+    (is (= (i/find state child-id ::i/id) child-id))
+    (is (= (i/find state child-id ::name) "bob"))
+    (is (= (i/find state child-id ::_child) [parent-id]))))
 
 (deftest test-entity
   (i/derive ::name ::i/aspect ::i/singular)

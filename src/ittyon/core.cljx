@@ -144,27 +144,32 @@
            (aspect-value :default vt)
            (aspect-value a vt))))))
 
+#+clj
+(deftype Entity [getter]
+  clojure.lang.IFn
+  (invoke [_ aspect] (getter aspect nil))
+  (invoke [_ aspect not-found] (getter aspect not-found))
+  clojure.lang.ILookup
+  (valAt [_ aspect] (getter aspect nil))
+  (valAt [_ aspect not-found] (getter aspect not-found)))
+
+#+cljs
+(deftype Entity [getter]
+  IFn
+  (-invoke [_ aspect] (getter aspect nil))
+  (-invoke [_ aspect not-found] (getter aspect not-found))
+  ILookup
+  (-lookup [_ aspect] (getter aspect nil))
+  (-lookup [_ aspect not-found] (getter aspect not-found)))
+
 (defn entity [state id]
-  (let [getter (memoize (fn [a d]
-                          (if (ref-aspect? a)
-                            (->> (find-vt state id a d)
-                                 (map-keys #(entity state %))
-                                 (aspect-value a))
-                            (find state id a d))))]
-    #+clj  (reify
-             clojure.lang.IFn
-             (invoke [_ aspect] (getter aspect nil))
-             (invoke [_ aspect not-found] (getter aspect not-found))
-             clojure.lang.ILookup
-             (valAt [_ aspect] (getter aspect nil))
-             (valAt [_ aspect not-found] (getter aspect not-found)))
-    #+cljs (reify
-             IFn
-             (-invoke [_ aspect] (getter aspect nil))
-             (-invoke [_ aspect not-found] (getter aspect not-found))
-             ILookup
-             (-lookup [_ aspect] (getter aspect nil))
-             (-lookup [_ aspect not-found] (getter aspect not-found)))))
+  (Entity.
+   (memoize (fn [a d]
+              (if (ref-aspect? a)
+                (->> (find-vt state id a d)
+                     (map-keys #(entity state %))
+                     (aspect-value a))
+                (find state id a d))))))
 
 (def empty-engine
   {:state       empty-state

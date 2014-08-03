@@ -2,11 +2,11 @@
   (:refer-clojure :exclude [assert time derive find])
   #+clj
   (:require [clojure.core :as core]
-            [medley.core :refer [dissoc-in]]
+            [medley.core :refer [dissoc-in map-keys]]
             [intentions.core :refer [defintent defconduct]])
   #+cljs
   (:require [cljs.core :as core]
-            [medley.core :refer [dissoc-in]]
+            [medley.core :refer [dissoc-in map-keys]]
             [intentions.core :refer-macros [defintent defconduct]]
             [cljs-uuid.core :as uuid]))
 
@@ -57,6 +57,8 @@
     (reduce #(core/derive %1 tag %2) h? parents)
     (doseq [p (cons tag parents)] (core/derive h? p))))
 
+(derive ::id ::singular)
+
 (defintent validate
   :dispatch revision-key
   :combine #(and %1 %2)
@@ -106,36 +108,49 @@
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
     [:revoke e a v* t]))
 
+(def reverse-ref?
+  (memoize (fn [a] (re-find #"^_" (name a)))))
+
+(def reverse-reverse-ref
+  (memoize (fn [a] (keyword (namespace a) (subs (name a) 1)))))
+
+(def ref-aspect?
+  (memoize (fn [a] (if (reverse-ref? a)
+                    (isa? (reverse-reverse-ref a) ::ref)
+                    (isa? a ::ref)))))
+
+(defn- find-vt [s e a d]
+  (cond
+   (= a ::id)       {e 0}
+   (reverse-ref? a) (get-in s [:index :avet (reverse-reverse-ref a) e] d)
+   :else            (get-in s [:index :eavt e a] d)))
+
 (defmulti aspect-value
-  (fn [a v] a))
+  (fn [a vt] a))
 
-(defmethod aspect-value ::singular [a v]
-  (first (keys v)))
+(defmethod aspect-value ::singular [a vt]
+  (first (keys vt)))
 
-(defmethod aspect-value :default [a v]
-  (mapv key (sort-by val v)))
-
-(defn- get-in-with [m ks f d]
-  (let [v (get-in m ks ::not-found)]
-    (if (= v ::not-found)
-      d
-      (f v))))
-
-(defn- reverse-ref [a]
-  (if (re-find #"^_" (name a))
-    (keyword (namespace a) (subs (name a) 1))))
+(defmethod aspect-value :default [a vt]
+  (mapv key (sort-by val vt)))
 
 (defn find
   ([s e a] (find s e a nil))
   ([s e a d]
-     (if (= a ::id)
-       e
-       (if-let [a (reverse-ref a)]
-         (get-in-with s [:index :avet a e] #(aspect-value :default %) d)
-         (get-in-with s [:index :eavt e a] #(aspect-value a %) d)))))
+     (let [vt (find-vt s e a ::not-found)]
+       (if (= vt ::not-found)
+         d
+         (if (reverse-ref? a)
+           (aspect-value :default vt)
+           (aspect-value a vt))))))
 
 (defn entity [state id]
-  (let [getter (memoize #(find state id %1 %2))]
+  (let [getter (memoize (fn [a d]
+                          (if (ref-aspect? a)
+                            (->> (find-vt state id a d)
+                                 (map-keys #(entity state %))
+                                 (aspect-value a))
+                            (find state id a d))))]
     #+clj  (reify
              clojure.lang.IFn
              (invoke [_ aspect] (getter aspect nil))

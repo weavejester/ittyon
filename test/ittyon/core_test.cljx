@@ -59,16 +59,24 @@
 
 (deftest test-entity
   (i/derive ::name ::i/aspect ::i/singular)
-  (let [ent-id (i/uuid)
-        time   (i/time)
-        state  (-> i/empty-state
-                   (i/assert [ent-id ::i/live? true time])
-                   (i/assert [ent-id ::name "alice" time]))
-        entity (i/entity state ent-id)]
-    (is (= (entity ::i/id) ent-id))
-    (is (= (get entity ::name) "alice"))
-    (is (= (entity ::sex :female) :female))
-    (is (= (get entity ::age 18) 18))))
+  (i/derive ::child ::i/aspect ::i/ref)
+  (let [parent-id (i/uuid)
+        child-id  (i/uuid)
+        time      (i/time)
+        state     (-> i/empty-state
+                      (i/assert [parent-id ::i/live? true time])
+                      (i/assert [parent-id ::name "alice" time])
+                      (i/assert [child-id ::i/live? true time])
+                      (i/assert [child-id ::name "bob" time])
+                      (i/assert [parent-id ::child child-id time]))
+        parent    (i/entity state parent-id)]
+    (is (= (parent ::i/id) parent-id))
+    (is (= (get parent ::name) "alice"))
+    (is (= (parent ::sex :unknown) :unknown))
+    (is (= (get parent ::age :unknown) :unknown))
+    (is (= (-> parent ::child first ::i/id) child-id))
+    (is (= (-> parent ::child first ::name) "bob"))
+    (is (= (-> parent ::child count) 1))))
 
 (deftest test-revision?
   (is (not (i/revision? nil)))

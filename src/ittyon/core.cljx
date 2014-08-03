@@ -57,8 +57,6 @@
     (reduce #(core/derive %1 tag %2) h? parents)
     (doseq [p (cons tag parents)] (core/derive h? p))))
 
-(derive ::id ::singular)
-
 (defintent validate
   :dispatch revision-key
   :combine #(and %1 %2)
@@ -120,10 +118,9 @@
                     (isa? a ::ref)))))
 
 (defn- find-vt [s e a d]
-  (cond
-   (= a ::id)       {e 0}
-   (reverse-ref? a) (get-in s [:index :avet (reverse-reverse-ref a) e] d)
-   :else            (get-in s [:index :eavt e a] d)))
+  (if (reverse-ref? a)
+    (get-in s [:index :avet (reverse-reverse-ref a) e] d)
+    (get-in s [:index :eavt e a] d)))
 
 (defmulti aspect-value
   (fn [a vt] a))
@@ -137,12 +134,14 @@
 (defn find
   ([s e a] (find s e a nil))
   ([s e a d]
-     (let [vt (find-vt s e a ::not-found)]
-       (if (= vt ::not-found)
-         d
-         (if (reverse-ref? a)
-           (aspect-value :default vt)
-           (aspect-value a vt))))))
+     (if (= a ::id)
+       e
+       (let [vt (find-vt s e a ::not-found)]
+         (if (= vt ::not-found)
+           d
+           (if (reverse-ref? a)
+             (aspect-value :default vt)
+             (aspect-value a vt)))))))
 
 #+clj
 (deftype Entity [getter]

@@ -49,11 +49,9 @@
                       (i/assert [parent-id ::child child-id time])
                       (i/assert [parent-id ::pet "rover" (inc time)])
                       (i/assert [parent-id ::pet "rex" time]))]
-    (is (= (i/find state parent-id ::i/id) parent-id))
     (is (= (i/find state parent-id ::name) "alice"))
     (is (= (i/find state parent-id ::pet) ["rex" "rover"]))
     (is (= (i/find state parent-id ::child) [child-id]))
-    (is (= (i/find state child-id ::i/id) child-id))
     (is (= (i/find state child-id ::name) "bob"))
     (is (= (i/find state child-id ::_child) [parent-id]))))
 

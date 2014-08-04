@@ -161,14 +161,21 @@
   (-lookup [_ aspect] (getter aspect nil))
   (-lookup [_ aspect not-found] (getter aspect not-found)))
 
+(declare entity)
+
+(defn- find-ref [s e a d]
+  (->> (find-vt s e a d)
+       (map-keys #(entity s %))
+       (aspect-value a)))
+
 (defn entity [state id]
   (Entity.
-   (memoize (fn [a d]
-              (if (ref-aspect? a)
-                (->> (find-vt state id a d)
-                     (map-keys #(entity state %))
-                     (aspect-value a))
-                (find state id a d))))))
+   (memoize
+    (fn [a d]
+      (cond
+       (= a ::id)      id
+       (ref-aspect? a) (find-ref state id a d)
+       :else           (find state id a d))))))
 
 (def empty-engine
   {:state       empty-state

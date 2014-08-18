@@ -6,32 +6,35 @@
             [ittyon.core :as i]
             [medley.core :refer [deref-reset!]]))
 
-(defn server [init]
-  {:engine  (atom init)
+(defn server [init-state]
+  {:state   (atom init-state)
    :sockets (atom #{})})
 
-(defn broadcast [{:keys [sockets]} socket message]
-  (doseq [sock @sockets :when (not= sock socket)]
+(defn shutdown! [{:keys [sockets]}]
+  (doseq [sock (deref-reset! sockets nil)]
+    (a/close! sock)))
+
+(defn broadcast! [server socket message]
+  (doseq [sock @(:sockets server) :when (not= sock socket)]
     (a/put! sock message)))
 
-(defn receive [engine event]
-  (case (first event)
-    :commit (reduce i/commit engine (rest event))
-    engine))
+(defmulti receive!
+  (fn [server event] (first event)))
 
-(defn accept [{:keys [sockets engine] :as server} socket]
+(defmethod receive! :default [_ _] nil)
+
+(defmethod receive! :commit [server event]
+  (swap! (:state server) #(reduce i/commit % (rest event))))
+
+(defn accept! [{:keys [sockets state] :as server} socket]
   (when @sockets
-    (go (>! socket [:time (i/time)])
-        (>! socket [:reset (-> @engine :state :snapshot)])
+    (go (>! socket [:time  (i/time)])
+        (>! socket [:reset (i/facts @state)])
         (when (swap! sockets #(some-> % (conj socket)))
           (loop []
             (when-let [event (<! socket)]
-              (swap! engine receive event)
-              (broadcast server socket event)
+              (receive! server event)
+              (broadcast! server socket event)
               (recur)))
           (swap! sockets disj socket))
         (a/close! socket))))
-
-(defn shutdown [{:keys [sockets]}]
-  (doseq [sock (deref-reset! sockets nil)]
-    (a/close! sock)))

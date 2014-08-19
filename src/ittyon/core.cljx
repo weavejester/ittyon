@@ -29,7 +29,7 @@
 
 (def empty-state
   {:snapshot {}
-   :index    {:eavt {}, :aevt {}, :avet {}}})
+   :index    {:eavt {}, :aevt {}, :avet {}, :ents {}}})
 
 (defn facts [state]
   (for [[[e a v] t] (:snapshot state)] [e a v t]))
@@ -54,6 +54,30 @@
 
 (defmethod update-index [:avet :revoke] [_ idx [_ e a v _]]
   (dissoc-in idx [a v e]))
+
+(defn- index-entity [i e a v]
+  (if (isa? a ::singular)
+    (assoc-in i [e a] v)
+    (assoc-in i [e a] (conj (get-in i [e a] #{}) v))))
+
+(defn- unindex-entity [i e a v]
+  (if (isa? a ::singular)
+    (dissoc-in i [e a])
+    (let [v (-> i (get-in [e a]) (disj v))]
+      (if (empty? v)
+        (dissoc-in i [e a])
+        (assoc-in i [e a] v)))))
+
+(defn- reverse-aspect [k]
+  (keyword (namespace k) (str "_" (name k))))
+
+(defmethod update-index [:ents :assert] [_ idx [_ e a v _]]
+  (-> idx (index-entity e a v)
+          (cond-> (isa? a ::ref) (index-entity e (reverse-aspect a) v))))
+
+(defmethod update-index [:ents :revoke] [_ idx [_ e a v _]]
+  (-> idx (unindex-entity e a v)
+          (cond-> (isa? a ::ref) (unindex-entity e (reverse-aspect a) v))))
 
 (defn- build-index [key facts]
   (reduce (fn [idx [e a v t]] (update-index key idx [:assert e a v t]))
@@ -152,77 +176,6 @@
      (->> (:snapshot state)
           (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
           (reduce commit state)))
-
-(def reverse-ref?
-  (memoize (fn [a] (re-find #"^_" (name a)))))
-
-(def reverse-reverse-ref
-  (memoize (fn [a] (keyword (namespace a) (subs (name a) 1)))))
-
-(def ref-aspect?
-  (memoize (fn [a] (if (reverse-ref? a)
-                    (isa? (reverse-reverse-ref a) ::ref)
-                    (isa? a ::ref)))))
-
-(defn- find-vt [s e a d]
-  (if (reverse-ref? a)
-    (get-in s [:index :avet (reverse-reverse-ref a) e] d)
-    (get-in s [:index :eavt e a] d)))
-
-(defmulti aspect-value
-  (fn [a vt] a))
-
-(defmethod aspect-value ::singular [a vt]
-  (first (keys vt)))
-
-(defmethod aspect-value :default [a vt]
-  (mapv key (sort-by val vt)))
-
-(defn find
-  ([s e a] (find s e a nil))
-  ([s e a d]
-     (if (= a ::id)
-       e
-       (let [vt (find-vt s e a ::not-found)]
-         (if (= vt ::not-found)
-           d
-           (if (reverse-ref? a)
-             (aspect-value :default vt)
-             (aspect-value a vt)))))))
-
-#+clj
-(deftype Entity [getter]
-  clojure.lang.IFn
-  (invoke [_ aspect] (getter aspect nil))
-  (invoke [_ aspect not-found] (getter aspect not-found))
-  clojure.lang.ILookup
-  (valAt [_ aspect] (getter aspect nil))
-  (valAt [_ aspect not-found] (getter aspect not-found)))
-
-#+cljs
-(deftype Entity [getter]
-  IFn
-  (-invoke [_ aspect] (getter aspect nil))
-  (-invoke [_ aspect not-found] (getter aspect not-found))
-  ILookup
-  (-lookup [_ aspect] (getter aspect nil))
-  (-lookup [_ aspect not-found] (getter aspect not-found)))
-
-(declare entity)
-
-(defn- find-ref [s e a d]
-  (->> (find-vt s e a d)
-       (map-keys #(entity s %))
-       (aspect-value a)))
-
-(defn entity [state id]
-  (Entity.
-   (memoize
-    (fn [a d]
-      (cond
-       (= a ::id)      id
-       (ref-aspect? a) (find-ref state id a d)
-       :else           (find state id a d))))))
 
 #+clj
 (defn periodically [freq func]

@@ -153,29 +153,22 @@
        (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
        (reduce commit state)))
 
-#+clj
 (defn periodically [freq func]
   (let [ideal (/ 1000 freq)
         stop? (atom false)]
-    (future
-      (loop []
-        (when-not @stop?
-          (let [start (time)]
-            (func)
-            (let [duration (- (time) start)]
-              (Thread/sleep (max 0 (- ideal duration)))
-              (recur))))))
-    #(reset! stop? true)))
-
-#+cljs
-(defn periodically [freq func]
-  (let [ideal (/ 1000 freq)
-        stop? (atom false)]
-    (letfn [(callback []
+    #+clj  (future
+             (loop []
+               (when-not @stop?
+                 (let [start (time)]
+                   (func)
+                   (let [duration (- (time) start)]
+                     (Thread/sleep (max 0 (- ideal duration)))
+                     (recur))))))
+    #+cljs (letfn [(callback []
               (when-not @stop?
                 (let [start (time)]
                   (func)
                   (let [duration (- (time) start)]
                     (js/setTimeout callback (max 0 (- ideal duration)))))))]
-      (callback)
-      #(reset! stop? true))))
+             (callback))
+    #(reset! stop? true)))

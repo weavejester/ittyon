@@ -22,6 +22,26 @@
   #+clj  (java.util.UUID/randomUUID)
   #+cljs (uuid/make-random))
 
+(defn periodically [freq func]
+  (let [ideal (/ 1000 freq)
+        stop? (atom false)]
+    #+clj  (future
+             (loop []
+               (when-not @stop?
+                 (let [start (time)]
+                   (func)
+                   (let [duration (- (time) start)]
+                     (Thread/sleep (max 0 (- ideal duration)))
+                     (recur))))))
+    #+cljs (letfn [(callback []
+              (when-not @stop?
+                (let [start (time)]
+                  (func)
+                  (let [duration (- (time) start)]
+                    (js/setTimeout callback (max 0 (- ideal duration)))))))]
+             (callback))
+    #(reset! stop? true)))
+
 (defn derive [h? tag & parents]
   (if (map? h?)
     (reduce #(core/derive %1 tag %2) h? parents)
@@ -152,23 +172,3 @@
   (->> (:snapshot state)
        (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
        (reduce commit state)))
-
-(defn periodically [freq func]
-  (let [ideal (/ 1000 freq)
-        stop? (atom false)]
-    #+clj  (future
-             (loop []
-               (when-not @stop?
-                 (let [start (time)]
-                   (func)
-                   (let [duration (- (time) start)]
-                     (Thread/sleep (max 0 (- ideal duration)))
-                     (recur))))))
-    #+cljs (letfn [(callback []
-              (when-not @stop?
-                (let [start (time)]
-                  (func)
-                  (let [duration (- (time) start)]
-                    (js/setTimeout callback (max 0 (- ideal duration)))))))]
-             (callback))
-    #(reset! stop? true)))

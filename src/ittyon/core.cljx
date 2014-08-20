@@ -149,9 +149,9 @@
     state))
 
 (defn tick [state time]
-     (->> (:snapshot state)
-          (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
-          (reduce commit state)))
+  (->> (:snapshot state)
+       (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
+       (reduce commit state)))
 
 #+clj
 (defn periodically [freq func]

@@ -34,29 +34,29 @@
 (defn facts [state]
   (for [[[e a v] t] (:snapshot state)] [e a v t]))
 
-(defmulti update-index
+(defmulti -index
   (fn [key idx [o e a v t]] [key o]))
 
-(defmethod update-index [:eavt :assert] [_ idx [_ e a v t]]
+(defmethod -index [:eavt :assert] [_ idx [_ e a v t]]
   (assoc-in idx [e a v] t))
 
-(defmethod update-index [:aevt :assert] [_ idx [_ e a v t]]
+(defmethod -index [:aevt :assert] [_ idx [_ e a v t]]
   (assoc-in idx [a e v] t))
 
-(defmethod update-index [:avet :assert] [_ idx [_ e a v t]]
+(defmethod -index [:avet :assert] [_ idx [_ e a v t]]
   (assoc-in idx [a v e] t))
 
-(defmethod update-index [:eavt :revoke] [_ idx [_ e a v _]]
+(defmethod -index [:eavt :revoke] [_ idx [_ e a v _]]
   (dissoc-in idx [e a v]))
 
-(defmethod update-index [:aevt :revoke] [_ idx [_ e a v _]]
+(defmethod -index [:aevt :revoke] [_ idx [_ e a v _]]
   (dissoc-in idx [a e v]))
 
-(defmethod update-index [:avet :revoke] [_ idx [_ e a v _]]
+(defmethod -index [:avet :revoke] [_ idx [_ e a v _]]
   (dissoc-in idx [a v e]))
 
 (defn- build-index [key facts]
-  (reduce (fn [idx [e a v t]] (update-index key idx [:assert e a v t]))
+  (reduce (fn [idx [e a v t]] (-index key idx [:assert e a v t]))
           {} facts))
 
 (defn reset [state facts]
@@ -68,46 +68,46 @@
     :assert (assoc snapshot [e a v] t)
     :revoke (dissoc snapshot [e a v] t)))
 
-(defn- update-indexes [indexes transition]
-  (reduce (fn [i k] (assoc i k (update-index k (i k) transition)))
-          indexes
-          (keys indexes)))
+(defn- update-index [index transition]
+  (reduce (fn [i k] (assoc i k (-index k (i k) transition)))
+          index
+          (keys index)))
 
 (defn update [state transition]
   (-> state
       (update-in [:snapshot] update-snapshot transition)
-      (update-in [:index] update-indexes transition)))
+      (update-in [:index] update-index transition)))
 
 (defn- transition-key [state [o e a v t]] [o a])
 
-(defintent validate
+(defintent -valid?
   :dispatch transition-key
   :combine #(and %1 %2)
   :default ::invalid)
 
-(defconduct validate ::invalid [_ _] false)
+(defconduct -valid? ::invalid [_ _] false)
 
-(defconduct validate [:assert ::live?] [_ [o e a v t]]
+(defconduct -valid? [:assert ::live?] [_ [o e a v t]]
   (and (uuid? e) (integer? t) (true? v)))
 
-(defconduct validate [:assert ::aspect] [s [o e a v t]]
+(defconduct -valid? [:assert ::aspect] [s [o e a v t]]
   (and (uuid? e) (integer? t) (get-in s [:index :eavt e ::live?])))
 
-(defconduct validate [:assert ::ref] [s [o e a v t]]
+(defconduct -valid? [:assert ::ref] [s [o e a v t]]
   (get-in s [:index :eavt v]))
 
-(defconduct validate [:revoke ::live?] [_ [o e a v t]]
+(defconduct -valid? [:revoke ::live?] [_ [o e a v t]]
   (integer? t))
 
-(defconduct validate [:revoke ::aspect] [_ [o e a v t]]
+(defconduct -valid? [:revoke ::aspect] [_ [o e a v t]]
   (integer? t))
 
-(defintent reactions
+(defintent -react
   :dispatch transition-key
   :combine concat
   :default ::no-op)
 
-(defconduct reactions ::no-op [_ _] '())
+(defconduct -react ::no-op [_ _] '())
 
 (defn- revoke-aspects [s e t]
   (for [[a vt] (get-in s [:index :eavt e])
@@ -121,11 +121,11 @@
         :when e]
     [:revoke e a v t]))
 
-(defconduct reactions [:revoke ::live?] [s [o e a v t]]
+(defconduct -react [:revoke ::live?] [s [o e a v t]]
   (concat (revoke-aspects s e t)
           (revoke-refs s e t)))
 
-(defconduct reactions [:assert ::singular] [s [o e a v t]]
+(defconduct -react [:assert ::singular] [s [o e a v t]]
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
     [:revoke e a v* t]))
 
@@ -136,10 +136,10 @@
          (and (#{:assert :revoke} o) (keyword? a)))))
 
 (defn valid? [state transition]
-  (and (transition? transition) (validate state transition)))
+  (and (transition? transition) (-valid? state transition)))
 
 (defn react [state transition]
-  (reactions state transition))
+  (seq (-react state transition)))
 
 (defn commit [state transition]
   (if (valid? state transition)

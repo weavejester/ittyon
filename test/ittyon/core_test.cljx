@@ -20,8 +20,7 @@
   {:snapshot {[:e :a :v] :t}
    :index {:eavt {:e {:a {:v :t}}}
            :aevt {:a {:e {:v :t}}}
-           :avet {:a {:v {:e :t}}}
-           :ents {:e {:a #{:v}}}}})
+           :avet {:a {:v {:e :t}}}}})
 
 (deftest test-reset
   (is (= (i/reset i/empty-state [[:e :a :v :t]]) eavt-state)))
@@ -89,26 +88,6 @@
                       (i/commit [:revoke child-id ::i/live? true time]))]
     (is (get-in state [:snapshot [parent-id ::child child-id]]))
     (is (not (get-in state* [:snapshot [parent-id ::child child-id]])))))
-
-(deftest test-ents
-  (i/derive ::name ::i/aspect ::i/singular)
-  (i/derive ::pet ::i/aspect)
-  (i/derive ::child ::i/aspect ::i/ref)
-  (let [parent-id (i/uuid)
-        child-id  (i/uuid)
-        time      (i/time)
-        state     (-> i/empty-state
-                      (i/update [:assert parent-id ::i/live? true time])
-                      (i/update [:assert parent-id ::name "alice" time])
-                      (i/update [:assert child-id ::i/live? true time])
-                      (i/update [:assert child-id ::name "bob" time])
-                      (i/update [:assert parent-id ::child child-id time])
-                      (i/update [:assert parent-id ::pet "rover" (inc time)])
-                      (i/update [:assert parent-id ::pet "rex" time]))
-        parent    (get-in state [:index :ents parent-id])]
-      (is (= (::name parent) "alice"))
-      (is (= (::pet parent) #{"rex" "rover"}))
-      (is (= (::child parent) #{child-id}))))
 
 #+clj
 (deftest test-periodically

@@ -29,7 +29,7 @@
 
 (def empty-state
   {:snapshot {}
-   :index    {:eavt {}, :aevt {}, :avet {}, :ents {}}})
+   :index    {:eavt {}, :aevt {}, :avet {}}})
 
 (defn facts [state]
   (for [[[e a v] t] (:snapshot state)] [e a v t]))
@@ -54,30 +54,6 @@
 
 (defmethod update-index [:avet :revoke] [_ idx [_ e a v _]]
   (dissoc-in idx [a v e]))
-
-(defn- index-entity [i e a v]
-  (if (isa? a ::singular)
-    (assoc-in i [e a] v)
-    (assoc-in i [e a] (conj (get-in i [e a] #{}) v))))
-
-(defn- unindex-entity [i e a v]
-  (if (isa? a ::singular)
-    (dissoc-in i [e a])
-    (let [v (-> i (get-in [e a]) (disj v))]
-      (if (empty? v)
-        (dissoc-in i [e a])
-        (assoc-in i [e a] v)))))
-
-(defn- reverse-aspect [k]
-  (keyword (namespace k) (str "_" (name k))))
-
-(defmethod update-index [:ents :assert] [_ idx [_ e a v _]]
-  (-> idx (index-entity e a v)
-          (cond-> (isa? a ::ref) (index-entity e (reverse-aspect a) v))))
-
-(defmethod update-index [:ents :revoke] [_ idx [_ e a v _]]
-  (-> idx (unindex-entity e a v)
-          (cond-> (isa? a ::ref) (unindex-entity e (reverse-aspect a) v))))
 
 (defn- build-index [key facts]
   (reduce (fn [idx [e a v t]] (update-index key idx [:assert e a v t]))

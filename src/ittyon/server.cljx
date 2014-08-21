@@ -37,7 +37,8 @@
   (swap! (:state server) i/tick (i/time)))
 
 (defn accept!
-  "Accept a new connection in the form of a bi-directional core.async channel."
+  "Accept a new connection in the form of a bi-directional core.async channel.
+  Used in conjuction with [[client/connect!]]."
   [{:keys [sockets state] :as server} socket]
   (when @sockets
     (go (>! socket [:time  (i/time)])

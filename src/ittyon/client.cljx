@@ -37,7 +37,8 @@
 
 (defn connect!
   "Connect to a server via a bi-directional channel, and return a channel that
-  promises to contain the client once the connection has been established."
+  promises to contain the client once the connection has been established. Used
+  in conjuction with [[server/accept!]]."
   ([socket] (connect! socket i/empty-state))
   ([socket init-state]
      (let [return (a/chan)

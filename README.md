@@ -47,7 +47,8 @@ A **time** is a positive integer that ascends over time. Ittyon uses
 [Unix time][3] for this purpose.
 
 Facts can be added or removed through the use of **transitions**.
-A transition adds an extra parameter to the start of a fact.
+Transitions contain the same elements as facts, prefixed with an
+**op**.
 
 ```clojure
 [op entity aspect value time]
@@ -57,6 +58,31 @@ The op is a keyword of either `:assert`, which adds a new fact, or
 `:revoke`, which removes an existing fact.
 
 [3]: https://en.wikipedia.org/wiki/Unix_time
+
+
+### Aspects
+
+Clojure allows hierarchical relationships to be defined between
+keywords via `derive`, and Ittyon takes advantage of this system to
+allow aspects to share common behavior.
+
+Ittyon comes with two base aspects you can derive from:
+
+* `ittyon.core/aspect`
+* `ittyon.core/singular`
+
+All of your aspects should derive from `:ittyon.core/aspect`. This
+adds basic validation, such as ensuring the entities are UUIDs, and
+the time is a positive integer.
+
+It also provides a way of atomically removing an entity via the
+`:ittyon.core/live?` aspect. This can only be true, and must be set on
+an entity before any other aspects can be set. When this aspect is
+removed, the entity is removed.
+
+By default, aspects can have multiple values per entity. The
+`:ittyon.core/singular` aspect forces an aspect to have only one value
+per entity. When a new value is asserted, the old value is revoked.
 
 
 ## License

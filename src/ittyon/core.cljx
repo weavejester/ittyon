@@ -1,4 +1,5 @@
 (ns ittyon.core
+  "An in-memory immutable database designed to manage game state."
   (:refer-clojure :exclude [assert time derive find])
   #+clj
   (:require [clojure.core :as core]
@@ -10,19 +11,28 @@
             [intentions.core :refer-macros [defintent defconduct]]
             [cljs-uuid.core :as uuid]))
 
-(defn time []
+(defn time
+  "Return the current system time in milliseconds."
+  []
   #+clj  (System/currentTimeMillis)
   #+cljs (.getTime (js/Date.)))
 
-(defn uuid? [x]
+(defn uuid?
+  "Return true if x is a UUID."
+  [x]
   #+clj  (instance? java.util.UUID x)
   #+cljs (instance? cljs.core.UUID x))
 
-(defn uuid []
+(defn uuid
+  "Return a random UUID."
+  []
   #+clj  (java.util.UUID/randomUUID)
   #+cljs (uuid/make-random))
 
-(defn periodically [freq func]
+(defn periodically
+  "Periodically evaluate a zero-argument function a specified number of times a
+  second."
+  [freq func]
   (let [ideal (/ 1000 freq)
         stop? (atom false)]
     #+clj  (future
@@ -42,19 +52,29 @@
              (callback))
     #(reset! stop? true)))
 
-(defn derive [h? tag & parents]
+(defn derive
+  "Operates the same as clojure.core/derive, except that multiple parent
+  arguments may be specified."
+  [h? tag & parents]
   (if (map? h?)
     (reduce #(core/derive %1 tag %2) h? parents)
     (doseq [p (cons tag parents)] (core/derive h? p))))
 
 (def empty-state
+  "The default empty state. Contains three indexes: eavt, aevt and avet."
   {:snapshot {}
    :index    {:eavt {}, :aevt {}, :avet {}}})
 
-(defn facts [state]
+(defn facts
+  "Return a seq of facts held by the supplied state."
+  [state]
   (for [[[e a v] t] (:snapshot state)] [e a v t]))
 
 (defmulti -index
+  "A multimethod to update the supplied index with a transition. The key
+  argument should match the key used in the state :index map. Dispatches
+  off the key and the transition op."
+  {:arglists '([key index transition])}
   (fn [key idx [o e a v t]] [key o]))
 
 (defmethod -index [:eavt :assert] [_ idx [_ e a v t]]
@@ -79,7 +99,9 @@
   (reduce (fn [idx [e a v t]] (-index key idx [:assert e a v t]))
           {} facts))
 
-(defn reset [state facts]
+(defn reset
+  "Empty a state then add an ordered collection of facts."
+  [state facts]
   {:snapshot (into {} (for [[e a v t] facts] [[e a v] t]))
    :index    (into {} (for [k (keys (:index state))] [k (build-index k facts)]))})
 
@@ -93,7 +115,9 @@
           index
           (keys index)))
 
-(defn update [state transition]
+(defn update
+  "Update a state with a single transition and return the new state."
+  [state transition]
   (-> state
       (update-in [:snapshot] update-snapshot transition)
       (update-in [:index] update-index transition)))
@@ -101,6 +125,10 @@
 (defn- transition-key [state [o e a v t]] [o a])
 
 (defintent -valid?
+  "An intention to determine whether a transition is valid for a particular
+  state. Dispatches off the transition op and the aspect. Combines results of
+  inherited keys with logical AND."
+  {:arglists '([state transition])}
   :dispatch transition-key
   :combine #(and %1 %2)
   :default ::invalid)
@@ -123,6 +151,9 @@
   (integer? t))
 
 (defintent -react
+  "An intention that returns an ordered collection of reaction transitions,
+  given a state and a valid transition. Dispatches off the transition op and
+  the aspect. Concatenates the results of inherited keys."
   :dispatch transition-key
   :combine concat
   :default ::no-op)
@@ -149,26 +180,43 @@
   (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
     [:revoke e a v* t]))
 
-(defn transition? [x]
+(defn transition?
+  "Return true if x is a transition. A transition is a vector of five values,
+  commonly abbreviated to [o e a v t]. The op, o, is either :assert or :revoke.
+  The aspect, a, must be a keyword."
+  [x]
   (and (sequential? x)
        (= (count x) 5)
        (let [[o e a v t] x]
          (and (#{:assert :revoke} o) (keyword? a)))))
 
-(defn valid? [state transition]
+(defn valid?
+  "Return true if the transition is a valid transition for the given state.
+  Extend using the [[-valid?]] intention."
+  [state transition]
   (and (transition? transition) (-valid? state transition)))
 
-(defn react [state transition]
+(defn react
+  "Return a seq of reaction transitions, or nil, for a given state and
+  transition. Extend using the [[-react]] intention."
+  [state transition]
   (seq (-react state transition)))
 
-(defn commit [state transition]
+(defn commit
+  "Takes a state and a transition, and if the transition is valid, returns
+  a new state with the transition and any reactions applied. If the transition
+  is not valid for the state, the state is returned unchanged."
+  [state transition]
   (if (valid? state transition)
     (let [state     (update state transition)
           reactions (react state transition)]
       (reduce commit state reactions))
     state))
 
-(defn tick [state time]
+(defn tick
+  "Update a state by moving the clock forward to a new time. This may generate
+  reactions that alter the state."
+  [state time]
   (->> (:snapshot state)
        (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
        (reduce commit state)))

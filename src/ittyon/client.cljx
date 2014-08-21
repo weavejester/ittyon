@@ -25,8 +25,8 @@
   with the time element omitted, i.e. [o e a v]."
   [client & messages]
   (let [time  (+ (i/time) @(:time-offset client))
-        revs  (for [r revisions] (conj (vec r) time))
-        event (vec (cons :commit revs))]
+        msgs  (for [m messages] (conj (vec m) time))
+        event (vec (cons :commit msgs))]
     (receive! client event)
     (a/put! (:socket client) event)))
 

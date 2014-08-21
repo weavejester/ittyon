@@ -1,4 +1,5 @@
 (ns ittyon.server
+  "A server that keeps the state of its clients in sync with one another."
   #+cljs
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require #+clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
@@ -6,19 +7,23 @@
             [ittyon.core :as i]
             [medley.core :refer [deref-reset!]]))
 
-(defn server [init-state]
+(defn server
+  "Create a new server with the supplied initial state."
+  [init-state]
   {:state   (atom init-state)
    :sockets (atom #{})})
 
-(defn shutdown! [{:keys [sockets]}]
-  (doseq [sock (deref-reset! sockets nil)]
+(defn shutdown!
+  "Shutdown the supplied server and atomically close all open sockets."
+  [server]
+  (doseq [sock (deref-reset! (:sockets server) nil)]
     (a/close! sock)))
 
-(defn broadcast! [server socket message]
+(defn ^:no-doc broadcast! [server socket message]
   (doseq [sock @(:sockets server) :when (not= sock socket)]
     (a/put! sock message)))
 
-(defmulti receive!
+(defmulti ^:no-doc receive!
   (fn [server event] (first event)))
 
 (defmethod receive! :default [_ _] nil)
@@ -26,7 +31,9 @@
 (defmethod receive! :commit [server event]
   (swap! (:state server) #(reduce i/commit % (rest event))))
 
-(defn accept! [{:keys [sockets state] :as server} socket]
+(defn accept!
+  "Accept a new connection in the form of a bi-directional core.async channel."
+  [{:keys [sockets state] :as server} socket]
   (when @sockets
     (go (>! socket [:time  (i/time)])
         (>! socket [:reset (i/facts @state)])

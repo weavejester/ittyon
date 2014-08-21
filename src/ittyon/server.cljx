@@ -31,6 +31,11 @@
 (defmethod receive! :commit [server event]
   (swap! (:state server) #(reduce i/commit % (rest event))))
 
+(defn tick!
+  "Move the clock forward on the server."
+  [server]
+  (swap! (:state server) i/tick (i/time)))
+
 (defn accept!
   "Accept a new connection in the form of a bi-directional core.async channel."
   [{:keys [sockets state] :as server} socket]

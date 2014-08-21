@@ -1,12 +1,9 @@
 (ns ittyon.client
-  #+clj
-  (:require [clojure.core.async :as a :refer [go go-loop <! >!]]
-            [ittyon.core :as i])
   #+cljs
-  (:require [cljs.core.async :as a :refer [<! >!]]
-            [ittyon.core :as i])
-  #+cljs
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
+  (:require #+clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
+            #+cljs [cljs.core.async :as a :refer [<! >!]]
+            [ittyon.core :as i]))
 
 (defmulti receive!
   (fn [client event] (first event)))

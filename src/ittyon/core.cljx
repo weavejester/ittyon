@@ -154,6 +154,7 @@
   "An intention that returns an ordered collection of reaction transitions,
   given a state and a valid transition. Dispatches off the transition op and
   the aspect. Concatenates the results of inherited keys."
+  {:arglists '([state transition])}
   :dispatch transition-key
   :combine concat
   :default ::no-op)
@@ -182,8 +183,8 @@
 
 (defn transition?
   "Return true if x is a transition. A transition is a vector of five values,
-  commonly abbreviated to [o e a v t]. The op, o, is either :assert or :revoke.
-  The aspect, a, must be a keyword."
+  commonly abbreviated to `[o e a v t]`. The op, o, is either `:assert` or
+  `:revoke`. The aspect, a, must be a keyword."
   [x]
   (and (sequential? x)
        (= (count x) 5)

@@ -10,7 +10,9 @@
                  [cljs-uuid "0.0.4"]]
   :plugins [[lein-cljsbuild "1.0.3"]
             [com.keminglabs/cljx "0.4.0"]
-            [com.cemerick/clojurescript.test "0.3.1"]]
+            [com.cemerick/clojurescript.test "0.3.1"]
+            [codox "0.8.10"]]
+  :codox {:defaults {:doc/format :markdown}}
   :cljx
   {:builds
    [{:source-paths ["src"],  :output-path "target/generated/src",  :rules :clj}

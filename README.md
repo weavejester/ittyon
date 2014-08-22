@@ -46,17 +46,6 @@ A **value** is any immutable value.
 A **time** is a positive integer that ascends over time. Ittyon uses
 [Unix time][3] for this purpose.
 
-Facts can be added or removed through the use of **transitions**.
-Transitions contain the same elements as facts, prefixed with an
-**op**.
-
-```clojure
-[op entity aspect value time]
-```
-
-The op is a keyword of either `:assert`, which adds a new fact, or
-`:revoke`, which removes an existing fact.
-
 [3]: https://en.wikipedia.org/wiki/Unix_time
 
 
@@ -83,6 +72,39 @@ removed, the entity is removed.
 By default, aspects can have multiple values per entity. The
 `:ittyon.core/singular` aspect forces an aspect to have only one value
 per entity. When a new value is asserted, the old value is revoked.
+
+
+### Transitions
+
+Facts can be added or removed to a state through the use of
+**transitions**. Transitions contain the same elements as facts,
+prefixed with an **op**.
+
+```clojure
+[op entity aspect value time]
+```
+
+The op is a keyword of either `:assert`, which adds a new fact, or
+`:revoke`, which removes an existing fact.
+
+Transitions are applied to a state with the `ittyon.core/commit`
+function. When a transaction is committed, three steps are followed:
+
+1. Validate
+2. Update
+3. React
+
+Validation ensures that the transaction is valid for the current
+state. This means not only validating the transaction itself, but also
+ensuring that it makes sense in the context of the supplied state.
+
+If the transition is valid, the state can be updated. This adds or
+removes a fact to the state, and refreshes the current indexes.
+
+Finally, a successfully applied transition may result in reactions.
+These are additional transitions triggered by the initial one. For
+example, revoking the `:ittyon.core/live?` aspect on an entity results
+in all other aspects of that entity being revoked as well.
 
 
 ## License

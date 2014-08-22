@@ -73,6 +73,24 @@ By default, aspects can have multiple values per entity. The
 `:ittyon.core/singular` aspect forces an aspect to have only one value
 per entity. When a new value is asserted, the old value is revoked.
 
+For example, consider a `::timer` aspect that contains a single
+numerical value. It could be defined:
+
+```clojure
+(require '[ittyon.core :as i])
+
+(derive ::timer ::i/aspect)
+(derive ::timer ::i/singular)
+```
+
+Because an aspect may be derived from many parents, Ittyon provides
+its own `derive` function that can take a variable list of parent
+keywords to derive from.
+
+```clojure
+(i/derive ::timer ::i/aspect ::i/singular)
+```
+
 
 ### Transitions
 
@@ -90,21 +108,40 @@ The op is a keyword of either `:assert`, which adds a new fact, or
 Transitions are applied to a state with the `ittyon.core/commit`
 function. When a transaction is committed, three steps are followed:
 
-1. Validate
-2. Update
-3. React
+1. Validation
+2. Indexing
+3. Reactions
 
-Validation ensures that the transaction is valid for the current
-state. This means not only validating the transaction itself, but also
-ensuring that it makes sense in the context of the supplied state.
 
-If the transition is valid, the state can be updated. This adds or
-removes a fact to the state, and refreshes the current indexes.
+### Validation
 
-Finally, a successfully applied transition may result in reactions.
-These are additional transitions triggered by the initial one. For
-example, revoking the `:ittyon.core/live?` aspect on an entity results
-in all other aspects of that entity being revoked as well.
+Validation checks whether the transaction can be added to a supplied
+state. This is achieved via the `ittyon.core/-valid?` [intention][4],
+which takes the current state and a transaction as arguments, and
+dispatches off the op and aspect.
+
+For example, consider the `::timer` aspect introduced earlier. Let's
+say that it should have a non-negative integer as a value. Using the
+Intentions library, we define a conduct that extends `-valid?`.
+
+```clojure
+(require '[intentions.core :refer [defconduct]])
+
+(defconduct i/-valid? [:assert ::timer] [state [o e a v t]]
+  (and (integer? v) (>= v 0)))
+```
+
+If validation fails, `commit` returns the state without changes.
+
+[4]: https://github.com/weavejester/intentions
+
+
+### Indexing
+
+Once a transition passes validation, 
+
+
+### Reactions
 
 
 ## License

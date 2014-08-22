@@ -52,6 +52,12 @@ This is the mechanism Ittyon uses for turning a static world into one
 that reacts to events.
 
 
+## Documentation
+
+* [Wiki](https://github.com/weavejester/ittyon/wiki)
+* [API Docs](https://weavejester.github.io/ittyon)
+
+
 ## License
 
 Copyright © 2014 James Reeves

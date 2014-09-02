@@ -22,6 +22,9 @@
            :aevt {:a {:e {:v :t}}}
            :avet {:a {:v {:e :t}}}}})
 
+(deftest test-empty
+  (is (= (i/empty eavt-state) i/empty-state)))
+
 (deftest test-reset
   (is (= (i/reset i/empty-state [[:e :a :v :t]]) eavt-state)))
 

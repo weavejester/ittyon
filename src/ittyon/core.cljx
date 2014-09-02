@@ -1,9 +1,9 @@
 (ns ittyon.core
   "An in-memory immutable database designed to manage game state."
-  (:refer-clojure :exclude [assert time derive find])
+  (:refer-clojure :exclude [assert time derive find empty])
   #+clj
   (:require [clojure.core :as core]
-            [medley.core :refer [dissoc-in map-keys]]
+            [medley.core :refer [dissoc-in map-keys map-vals]]
             [intentions.core :refer [defintent defconduct]])
   #+cljs
   (:require [cljs.core :as core]
@@ -95,16 +95,6 @@
 (defmethod -index [:avet :revoke] [_ idx [_ e a v _]]
   (dissoc-in idx [a v e]))
 
-(defn- build-index [key facts]
-  (reduce (fn [idx [e a v t]] (-index key idx [:assert e a v t]))
-          {} facts))
-
-(defn reset
-  "Empty a state then add an ordered collection of facts."
-  [state facts]
-  {:snapshot (into {} (for [[e a v t] facts] [[e a v] t]))
-   :index    (into {} (for [k (keys (:index state))] [k (build-index k facts)]))})
-
 (defn- update-snapshot [snapshot [o e a v t]]
   (case o
     :assert (assoc snapshot [e a v] t)
@@ -121,6 +111,18 @@
   (-> state
       (update-in [:snapshot] update-snapshot transition)
       (update-in [:index] update-index transition)))
+
+(defn empty
+  "Empty a state's snapshot and index."
+  [state]
+  (-> state
+      (assoc :snapshot {})
+      (update-in [:index] #(map-vals (constantly {}) %))))
+
+(defn reset
+  "Empty a state then add an ordered collection of facts."
+  [state facts]
+  (reduce update (empty state) (for [[e a v t] facts] [:assert e a v t])))
 
 (defn- transition-key [state [o e a v t]] [o a])
 

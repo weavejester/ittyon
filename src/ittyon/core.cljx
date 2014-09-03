@@ -70,47 +70,55 @@
   [state]
   (for [[[e a v] t] (:snapshot state)] [e a v t]))
 
-(defmulti -index
-  "A multimethod to update the supplied index with a transition. The key
+(derive ::aspect ::base)
+(derive ::live? ::base)
+
+(defintent -index
+  "An intention to update the supplied index with a transition. The key
   argument should match the key used in the state :index map. Dispatches
-  off the key and the transition op."
-  {:arglists '([key index transition])}
-  (fn [key idx [o e a v t]] [key o]))
+  off the key and the transition op and aspect."
+  {:arglists '([key state transition])}
+  :dispatch (fn [s k [o e a v t]] [k o a])
+  :combine  comp
+  :default  ::unindexed)
 
-(defmethod -index [:eavt :assert] [_ idx [_ e a v t]]
-  (assoc-in idx [e a v] t))
+(defconduct -index ::unindexed [_ _ _] identity)
 
-(defmethod -index [:aevt :assert] [_ idx [_ e a v t]]
-  (assoc-in idx [a e v] t))
+(defconduct -index [:eavt :assert ::base] [_ _ [_ e a v t]]
+  #(assoc-in % [e a v] t))
 
-(defmethod -index [:avet :assert] [_ idx [_ e a v t]]
-  (assoc-in idx [a v e] t))
+(defconduct -index [:aevt :assert ::base] [_ _ [_ e a v t]]
+  #(assoc-in % [a e v] t))
 
-(defmethod -index [:eavt :revoke] [_ idx [_ e a v _]]
-  (dissoc-in idx [e a v]))
+(defconduct -index [:avet :assert ::base] [_ _ [_ e a v t]]
+  #(assoc-in % [a v e] t))
 
-(defmethod -index [:aevt :revoke] [_ idx [_ e a v _]]
-  (dissoc-in idx [a e v]))
+(defconduct -index [:eavt :revoke ::base] [_ _ [_ e a v _]]
+  #(dissoc-in % [e a v]))
 
-(defmethod -index [:avet :revoke] [_ idx [_ e a v _]]
-  (dissoc-in idx [a v e]))
+(defconduct -index [:aevt :revoke ::base] [_ _ [_ e a v _]]
+  #(dissoc-in % [a e v]))
 
-(defn- update-snapshot [snapshot [o e a v t]]
+(defconduct -index [:avet :revoke ::base] [_ _ [_ e a v _]]
+  #(dissoc-in % [a v e]))
+
+(defn index [state key transition]
+  (update-in state [:index key] (-index state key transition)))
+
+(defn index-all [state transition]
+  (reduce #(index %1 %2 transition) state (keys (:index state))))
+
+(defn update-snapshot [state [o e a v t]]
   (case o
-    :assert (assoc snapshot [e a v] t)
-    :revoke (dissoc snapshot [e a v] t)))
-
-(defn- update-index [index transition]
-  (reduce (fn [i k] (assoc i k (-index k (i k) transition)))
-          index
-          (keys index)))
+    :assert (update-in state [:snapshot] assoc [e a v] t)
+    :revoke (update-in state [:snapshot] dissoc [e a v] t)))
 
 (defn update
   "Update a state with a single transition and return the new state."
   [state transition]
   (-> state
-      (update-in [:snapshot] update-snapshot transition)
-      (update-in [:index] update-index transition)))
+      (update-snapshot transition)
+      (index-all transition)))
 
 (defn empty
   "Empty a state's snapshot and index."

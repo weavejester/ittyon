@@ -16,31 +16,33 @@
              (derive ::a ::b)
              (derive ::a ::c)))))
 
+(derive ::a ::i/aspect)
+
 (def eavt-state
-  {:snapshot {[:e :a :v] :t}
-   :index {:eavt {:e {:a {:v :t}}}
-           :aevt {:a {:e {:v :t}}}
-           :avet {:a {:v {:e :t}}}}})
+  {:snapshot {[:e ::a :v] :t}
+   :index {:eavt {:e {::a {:v :t}}}
+           :aevt {::a {:e {:v :t}}}
+           :avet {::a {:v {:e :t}}}}})
 
 (deftest test-empty
   (is (= (i/empty eavt-state) i/empty-state)))
 
 (deftest test-reset
-  (is (= (i/reset i/empty-state [[:e :a :v :t]]) eavt-state)))
+  (is (= (i/reset i/empty-state [[:e ::a :v :t]]) eavt-state)))
 
 (deftest test-update
   (testing "assert"
-    (is (= (i/update i/empty-state [:assert :e :a :v :t]) eavt-state)))
+    (is (= (i/update i/empty-state [:assert :e ::a :v :t]) eavt-state)))
   (testing "revoke"
-    (is (= (i/update eavt-state [:revoke :e :a :v :t]) i/empty-state))))
+    (is (= (i/update eavt-state [:revoke :e ::a :v :t]) i/empty-state))))
 
 (deftest test-transition?
   (is (not (i/transition? nil)))
-  (is (not (i/transition? [:o :e :a :v :t])))
+  (is (not (i/transition? [:o :e ::a :v :t])))
   (is (not (i/transition? [:assert :e "a" :v :t])))
-  (is (not (i/transition? [:assert :e :a :v])))
-  (is (i/transition? [:assert :e :a :v :t]))
-  (is (i/transition? [:assert :e :a :v :t])))
+  (is (not (i/transition? [:assert :e ::a :v])))
+  (is (i/transition? [:assert :e ::a :v :t]))
+  (is (i/transition? [:assert :e ::a :v :t])))
 
 (deftest test-valid?
   (let [state  i/empty-state

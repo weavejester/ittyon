@@ -60,53 +60,43 @@
     (reduce #(core/derive %1 tag %2) h? parents)
     (doseq [p (cons tag parents)] (core/derive h? p))))
 
-(def empty-state
-  "The default empty state. Contains three indexes: eavt, aevt and avet."
-  {:snapshot {}
-   :index    {:eavt {}, :aevt {}, :avet {}}})
+(defn- transition-key [state [o e a v t]] [o a])
 
-(defn facts
-  "Return a seq of facts held by the supplied state."
-  [state]
-  (for [[[e a v] t] (:snapshot state)] [e a v t]))
-
-(derive ::aspect ::base)
-(derive ::live? ::base)
+(derive ::indexed ::eavt ::aevt ::avet)
+(derive ::aspect  ::indexed)
+(derive ::live?   ::indexed)
 
 (defintent -index
   "An intention to update the supplied index with a transition. The key
   argument should match the key used in the state :index map. Dispatches
   off the key and the transition op and aspect."
-  {:arglists '([key state transition])}
-  :dispatch (fn [s k [o e a v t]] [k o a])
+  {:arglists '([state transition])}
+  :dispatch transition-key
   :combine  comp
   :default  ::unindexed)
 
-(defconduct -index ::unindexed [_ _ _] identity)
+(defconduct -index ::unindexed [_ _] identity)
 
-(defconduct -index [:eavt :assert ::base] [_ _ [_ e a v t]]
-  #(assoc-in % [e a v] t))
+(defconduct -index [:assert ::eavt] [_ [_ e a v t]]
+  #(assoc-in % [:eavt e a v] t))
 
-(defconduct -index [:aevt :assert ::base] [_ _ [_ e a v t]]
-  #(assoc-in % [a e v] t))
+(defconduct -index [:assert ::aevt] [_ [_ e a v t]]
+  #(assoc-in % [:aevt a e v] t))
 
-(defconduct -index [:avet :assert ::base] [_ _ [_ e a v t]]
-  #(assoc-in % [a v e] t))
+(defconduct -index [:assert ::avet] [_ [_ e a v t]]
+  #(assoc-in % [:avet a v e] t))
 
-(defconduct -index [:eavt :revoke ::base] [_ _ [_ e a v _]]
-  #(dissoc-in % [e a v]))
+(defconduct -index [:revoke ::eavt] [_ [_ e a v _]]
+  #(dissoc-in % [:eavt e a v]))
 
-(defconduct -index [:aevt :revoke ::base] [_ _ [_ e a v _]]
-  #(dissoc-in % [a e v]))
+(defconduct -index [:revoke ::aevt] [_ [_ e a v _]]
+  #(dissoc-in % [:aevt a e v]))
 
-(defconduct -index [:avet :revoke ::base] [_ _ [_ e a v _]]
-  #(dissoc-in % [a v e]))
+(defconduct -index [:revoke ::avet] [_ [_ e a v _]]
+  #(dissoc-in % [:avet a v e]))
 
-(defn index [state key transition]
-  (update-in state [:index key] (-index state key transition)))
-
-(defn index-all [state transition]
-  (reduce #(index %1 %2 transition) state (keys (:index state))))
+(defn index [state transition]
+  (update-in state [:index] (-index state transition)))
 
 (defn update-snapshot [state [o e a v t]]
   (case o
@@ -118,21 +108,17 @@
   [state transition]
   (-> state
       (update-snapshot transition)
-      (index-all transition)))
+      (index transition)))
 
-(defn empty
-  "Empty a state's snapshot and index."
+(defn state
+  "Return a new state, either empty or prepopulated with a collection of facts."
+  ([]      {:snapshot {}, :index {}})
+  ([facts] (reduce update (state) (for [[e a v t] facts] [:assert e a v t]))))
+
+(defn facts
+  "Return a seq of facts held by the supplied state."
   [state]
-  (-> state
-      (assoc :snapshot {})
-      (update-in [:index] #(map-vals (constantly {}) %))))
-
-(defn reset
-  "Empty a state then add an ordered collection of facts."
-  [state facts]
-  (reduce update (empty state) (for [[e a v t] facts] [:assert e a v t])))
-
-(defn- transition-key [state [o e a v t]] [o a])
+  (for [[[e a v] t] (:snapshot state)] [e a v t]))
 
 (defintent -valid?
   "An intention to determine whether a transition is valid for a particular

@@ -15,7 +15,7 @@
   (swap! (:state client) #(reduce i/commit % (rest event))))
 
 (defmethod receive! :reset [client event]
-  (swap! (:state client) i/reset (second event)))
+  (reset! (:state client) (i/state (second event))))
 
 (defmethod receive! :time [client event]
   (reset! (:time-offset client) (- (i/time) (second event))))
@@ -39,7 +39,7 @@
   "Connect to a server via a bi-directional channel, and return a channel that
   promises to contain the client once the connection has been established. Used
   in conjuction with [[server/accept!]]."
-  ([socket] (connect! socket i/empty-state))
+  ([socket] (connect! socket (i/state)))
   ([socket init-state]
      (let [return (a/chan)
            client {:socket      socket

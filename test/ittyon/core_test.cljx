@@ -24,17 +24,17 @@
            :aevt {::a {:e {:v :t}}}
            :avet {::a {:v {:e :t}}}}})
 
-(deftest test-empty
-  (is (= (i/empty eavt-state) i/empty-state)))
-
-(deftest test-reset
-  (is (= (i/reset i/empty-state [[:e ::a :v :t]]) eavt-state)))
+(deftest test-state
+  (testing "empty"
+    (is (= (i/state) {:snapshot {}, :index {}})))
+  (testing "not empty"
+    (is (= (i/state #{[:e ::a :v :t]}) eavt-state))))
 
 (deftest test-update
   (testing "assert"
-    (is (= (i/update i/empty-state [:assert :e ::a :v :t]) eavt-state)))
+    (is (= (i/update (i/state) [:assert :e ::a :v :t]) eavt-state)))
   (testing "revoke"
-    (is (= (i/update eavt-state [:revoke :e ::a :v :t]) i/empty-state))))
+    (is (= (i/update eavt-state [:revoke :e ::a :v :t]) (i/state)))))
 
 (deftest test-transition?
   (is (not (i/transition? nil)))
@@ -45,9 +45,9 @@
   (is (i/transition? [:assert :e ::a :v :t])))
 
 (deftest test-valid?
-  (let [state  i/empty-state
-        entity (i/uuid)
-        time   (i/time)]
+  (let [entity (i/uuid)
+        time   (i/time)
+        state  (i/state)]
     (i/derive ::name ::i/aspect ::i/singular)
     (is (not (i/valid? state [:assert entity ::name "alice" time])))
     (is (not (i/valid? state [:assert entity ::i/live? false time])))
@@ -57,9 +57,8 @@
   (i/derive ::name ::i/aspect ::i/singular)
   (let [entity (i/uuid)
         time   (i/time)
-        state  (-> i/empty-state
-                   (i/update [:assert entity ::i/live? true time])
-                   (i/update [:assert entity ::name "alice" time]))]
+        state  (i/state #{[entity ::i/live? true time]
+                          [entity ::name "alice" time]})]
     (is (= (i/react state [:assert entity ::name "bob" time])
            [[:revoke entity ::name "alice" time]]))
     (is (= (i/react state [:revoke entity ::i/live? true time])
@@ -69,7 +68,7 @@
   (let [entity (i/uuid)
         time   (i/time)]
     (i/derive ::name ::i/aspect ::i/singular)
-    (is (= (-> i/empty-state
+    (is (= (-> (i/state)
                (i/commit [:assert entity ::i/live? true time])
                (i/commit [:assert entity ::name "alice" time])
                (i/commit [:assert entity ::name "bob" time])
@@ -83,7 +82,7 @@
   (let [parent-id (i/uuid)
         child-id  (i/uuid)
         time      (i/time)
-        state     (-> i/empty-state
+        state     (-> (i/state)
                       (i/commit [:assert parent-id ::i/live? true time])
                       (i/commit [:assert parent-id ::name "alice" time])
                       (i/commit [:assert child-id ::i/live? true time])

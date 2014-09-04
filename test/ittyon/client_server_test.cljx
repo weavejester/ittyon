@@ -20,11 +20,10 @@
 (def entity (i/uuid))
 
 (def init-state
-  (-> i/empty-state
-      (i/commit [:assert entity ::i/live? true (i/time)])
-      (i/commit [:assert entity ::name "alice" (i/time)])
-      (i/commit [:assert entity ::email "alice@example.com" (i/time)])
-      (i/commit [:assert entity ::clock 0 (i/time)])))
+  (i/state #{[entity ::i/live? true (i/time)]
+             [entity ::name "alice" (i/time)]
+             [entity ::email "alice@example.com" (i/time)]
+             [entity ::clock 0 (i/time)]}))
 
 (defn setup-server-client [state]
   (let [server  (server/server state)

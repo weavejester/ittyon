@@ -16,6 +16,24 @@
              (derive ::a ::b)
              (derive ::a ::c)))))
 
+#+clj
+(deftest test-periodically
+  (let [counter (atom 0)
+        stop    (i/periodically 100 #(swap! counter inc))]
+    (Thread/sleep 30)
+    (is (>= @counter 2))
+    (stop)))
+
+#+cljs
+(deftest ^:async test-periodically
+  (let [counter (atom 0)
+        stop    (i/periodically 100 #(swap! counter inc))]
+    (js/setTimeout (fn []
+                     (is (>= @counter 2))
+                     (stop)
+                     (done))
+                   30)))
+
 (derive ::a ::i/aspect)
 
 (def eavt-state
@@ -92,21 +110,3 @@
                       (i/commit [:revoke child-id ::i/live? true time]))]
     (is (get-in state [:snapshot [parent-id ::child child-id]]))
     (is (not (get-in state* [:snapshot [parent-id ::child child-id]])))))
-
-#+clj
-(deftest test-periodically
-  (let [counter (atom 0)
-        stop    (i/periodically 100 #(swap! counter inc))]
-    (Thread/sleep 30)
-    (is (>= @counter 2))
-    (stop)))
-
-#+cljs
-(deftest ^:async test-periodically
-  (let [counter (atom 0)
-        stop    (i/periodically 100 #(swap! counter inc))]
-    (js/setTimeout (fn []
-                     (is (>= @counter 2))
-                     (stop)
-                     (done))
-                   30)))

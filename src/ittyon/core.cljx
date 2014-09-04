@@ -95,7 +95,8 @@
   #(dissoc-in % [:avet a v e]))
 
 (defn index
-  "Update the state's indexes for a single transition."
+  "Update the state's indexes for a single transition. Extend using the
+  [[-index]] intention."
   [state transition]
   (update-in state [:index] (-index state transition)))
 
@@ -107,7 +108,8 @@
     :revoke (update-in state [:snapshot] dissoc [e a v] t)))
 
 (defn update
-  "Update a state with a single transition and return the new state."
+  "Update a state with a single transition and return the new state. Combines
+  [[update-snapshot]] with [[index]]."
   [state transition]
   (-> state
       (update-snapshot transition)

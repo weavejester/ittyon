@@ -67,9 +67,9 @@
 (derive ::live?   ::indexed)
 
 (defintent -index
-  "An intention to update the supplied index with a transition. The key
-  argument should match the key used in the state :index map. Dispatches
-  off the key and the transition op and aspect."
+  "An intention to update the supplied index with a transition. Expected to
+  return a function that updates the index. Dispatches off the transition op
+  and the aspect. Composes the returned functions."
   {:arglists '([state transition])}
   :dispatch transition-key
   :combine  comp
@@ -95,10 +95,14 @@
 (defconduct -index [:revoke ::avet] [_ [_ e a v _]]
   #(dissoc-in % [:avet a v e]))
 
-(defn index [state transition]
+(defn index
+  "Update the state's indexes for a single transition."
+  [state transition]
   (update-in state [:index] (-index state transition)))
 
-(defn update-snapshot [state [o e a v t]]
+(defn update-snapshot
+  "Update the state's snapshot for a single transition."
+  [state [o e a v t]]
   (case o
     :assert (update-in state [:snapshot] assoc [e a v] t)
     :revoke (update-in state [:snapshot] dissoc [e a v] t)))

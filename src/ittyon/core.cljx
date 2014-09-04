@@ -72,10 +72,9 @@
   and the aspect. Composes the returned functions."
   {:arglists '([state transition])}
   :dispatch transition-key
-  :combine  comp
-  :default  ::unindexed)
+  :combine comp)
 
-(defconduct -index ::unindexed [_ _] identity)
+(defconduct -index :default [_ _] identity)
 
 (defconduct -index [:assert ::eavt] [_ [_ e a v t]]
   #(assoc-in % [:eavt e a v] t))
@@ -130,10 +129,9 @@
   inherited keys with logical AND."
   {:arglists '([state transition])}
   :dispatch transition-key
-  :combine #(and %1 %2)
-  :default ::invalid)
+  :combine #(and %1 %2))
 
-(defconduct -valid? ::invalid [_ _] false)
+(defconduct -valid? :default [_ _] false)
 
 (defconduct -valid? [:assert ::live?] [_ [o e a v t]]
   (and (uuid? e) (integer? t) (true? v)))
@@ -156,10 +154,9 @@
   the aspect. Concatenates the results of inherited keys."
   {:arglists '([state transition])}
   :dispatch transition-key
-  :combine concat
-  :default ::no-op)
+  :combine concat)
 
-(defconduct -react ::no-op [_ _] '())
+(defconduct -react :default [_ _] '())
 
 (defn- revoke-aspects [s e t]
   (for [[a vt] (get-in s [:index :eavt e])

@@ -7,7 +7,7 @@
             [intentions.core :refer [defintent defconduct]])
   #+cljs
   (:require [cljs.core :as core]
-            [medley.core :refer [dissoc-in map-keys]]
+            [medley.core :refer [dissoc-in map-keys map-vals]]
             [intentions.core :refer-macros [defintent defconduct]]
             [cljs-uuid.core :as uuid]))
 

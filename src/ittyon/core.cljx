@@ -1,6 +1,6 @@
 (ns ittyon.core
   "An in-memory immutable database designed to manage game state."
-  (:refer-clojure :exclude [time derive])
+  (:refer-clojure :exclude [time derive update])
   #+clj
   (:require [clojure.core :as core]
             [medley.core :refer [dissoc-in map-keys map-vals]]

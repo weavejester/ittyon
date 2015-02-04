@@ -3,14 +3,12 @@
   :url "https://github.com/weavejester/ittyon"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.5.1"]
-                 [org.clojure/core.async "0.1.303.0-886421-alpha"]
-                 [medley "0.5.0"]
-                 [intentions "0.1.1"]
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
+                 [medley "0.5.5"]
+                 [intentions "0.1.3"]
                  [cljs-uuid "0.0.4"]]
-  :plugins [[lein-cljsbuild "1.0.3"]
-            [com.keminglabs/cljx "0.4.0"]
-            [com.cemerick/clojurescript.test "0.3.1"]
+  :plugins [[lein-cljsbuild "1.0.4"]
             [codox "0.8.10"]]
   :codox {:defaults {:doc/format :markdown}}
   :cljx
@@ -19,9 +17,9 @@
     {:source-paths ["test"], :output-path "target/generated/test", :rules :clj}
     {:source-paths ["src"],  :output-path "target/generated/src",  :rules :cljs}
     {:source-paths ["test"], :output-path "target/generated/test", :rules :cljs}]}
+  :prep-tasks   [["cljx" "once"]]
   :source-paths ["src" "target/generated/src"]
   :test-paths   ["test" "target/generated/test"]
-  :hooks [cljx.hooks]
   :cljsbuild
   {:builds
    [{:source-paths ["src" "test" "target/generated/src" "target/generated/test"]
@@ -30,11 +28,12 @@
    :test-commands {"unit-tests" ["phantomjs" :runner "target/main.js"]}}
   :aliases
   {"test-cljs" ["do" ["cljx" "once"] ["cljsbuild" "test"]]
-   "test-all"  ["do" ["with-profile" "default:+1.6" "test"] ["cljsbuild" "test"]]}
+   "test-all"  ["do" ["test"] ["cljsbuild" "test"]]}
   :profiles
-  {:provided {:dependencies [[org.clojure/clojurescript "0.0-2227"]]}
-   :1.6      {:dependencies [[org.clojure/clojure "1.6.0"]]}
-   :dev      {:jvm-opts ^:replace {}
-              :dependencies [[org.clojure/tools.namespace "0.2.4"]
+  {:provided {:dependencies [[org.clojure/clojurescript "0.0-2760"]]}
+   :dev      {:dependencies [[org.clojure/tools.namespace "0.2.9"]
                              [criterium "0.4.3"]
-                             [jarohen/chord "0.4.1"]]}})
+                             [jarohen/chord "0.6.0"]]
+              :jvm-opts ^:replace {}
+              :plugins [[com.keminglabs/cljx "0.5.0"]
+                        [com.cemerick/clojurescript.test "0.3.3"]]}})

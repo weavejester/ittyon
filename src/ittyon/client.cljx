@@ -35,21 +35,29 @@
   [client]
   (swap! (:state client) i/tick (+ (i/time) @(:time-offset client))))
 
+(defn- handshake! [socket]
+  (letfn [(expect [t [e d]] {:pre [(= e t)]} d)]
+    (go (let [identity (expect :identity (<! socket))
+              time     (expect :time     (<! socket))
+              reset    (expect :reset    (<! socket))]
+          {:socket      socket
+           :identity    identity
+           :state       (atom (i/state reset))
+           :time-offset (atom (- (i/time) time))}))))
+
 (defn connect!
   "Connect to a server via a bi-directional channel, and return a channel that
   promises to contain the client once the connection has been established. Used
   in conjuction with [[server/accept!]]."
-  ([socket] (connect! socket (i/state)))
-  ([socket init-state]
-     (let [return (a/chan)
-           client {:socket      socket
-                   :state       (atom init-state)
-                   :time-offset (atom 0)}]
-       (go-loop []
-         (when-let [event (<! socket)]
-           (receive! client event)
-           (when (= (first event) :reset)
-             (>! return client)
-             (a/close! return))
-           (recur)))
-       return)))
+  [socket]
+  (let [return  (a/chan)
+        clientp (handshake! socket)]
+    (go (let [client (<! clientp)]
+          (>! return client)
+          (a/close! clientp)
+          (a/close! return)
+          (loop []
+            (when-let [event (<! socket)]
+              (receive! client event)
+              (recur)))))
+    return))

@@ -36,9 +36,11 @@
 #+clj
 (deftest test-async
   (let [[server client] (<!! (setup-server-client init-state))]
+
+    (testing "identity of client"
+      (i/uuid? (:identity client)))
     
     (testing "initial state transferred to client"
-      (Thread/sleep 25)
       (is (= (-> client :state deref :snapshot)
              (-> server :state deref :snapshot))))
 
@@ -57,8 +59,10 @@
 (deftest ^:async test-async
   (go (let [[server client] (<! (setup-server-client init-state))]
 
+        (testing "identity of client"
+          (i/uuid? (:identity client)))
+
         (testing "initial state transferred to client"
-          (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot)
                  (-> server :state deref :snapshot))))
 

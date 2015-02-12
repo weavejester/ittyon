@@ -41,9 +41,9 @@
   Used in conjuction with [[client/connect!]]."
   [{:keys [sockets state] :as server} socket]
   (when @sockets
-    (go (>! socket [:identity (i/uuid)])
-        (>! socket [:time     (i/time)])
-        (>! socket [:reset    (i/facts @state)])
+    (go (>! socket [:init {:identity (i/uuid)
+                           :time     (i/time)
+                           :reset    (i/facts @state)}])
         (when (swap! sockets #(some-> % (conj socket)))
           (loop []
             (when-let [event (<! socket)]

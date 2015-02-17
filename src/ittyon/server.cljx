@@ -36,19 +36,35 @@
   [server]
   (swap! (:state server) i/tick (i/time)))
 
+(defn- connect-event [client-id]
+  [:commit [:assert client-id ::i/live? true (i/time)]])
+
+(defn- disconnect-event [client-id]
+  [:commit [:revoke client-id ::i/live? true (i/time)]])
+
+(defn- handshake-event [client-id init-state]
+  [:init {:identity client-id
+          :time     (i/time)
+          :reset    (i/facts init-state)}])
+
+(defn- make-handler [server socket]
+  (fn [event]
+    (receive! server event)
+    (broadcast! server socket event)))
+
 (defn accept!
   "Accept a new connection in the form of a bi-directional core.async channel.
   Used in conjuction with [[client/connect!]]."
   [{:keys [sockets state] :as server} socket]
-  (when @sockets
-    (go (>! socket [:init {:identity (i/uuid)
-                           :time     (i/time)
-                           :reset    (i/facts @state)}])
-        (when (swap! sockets #(some-> % (conj socket)))
+  (when (swap! sockets #(some-> % (conj socket)))
+    (let [handle!   (make-handler server socket)
+          client-id (i/uuid)]
+      (go (handle! (connect-event client-id))
+          (>! socket (handshake-event client-id @state))
           (loop []
             (when-let [event (<! socket)]
-              (receive! server event)
-              (broadcast! server socket event)
+              (handle! event)
               (recur)))
-          (swap! sockets disj socket))
-        (a/close! socket))))
+          (handle! (disconnect-event client-id))
+          (swap! sockets disj socket)
+          (a/close! socket)))))

@@ -44,13 +44,19 @@
       (is (= (-> client :state deref :snapshot)
              (-> server :state deref :snapshot))))
 
+    (testing "connected client stored in state"
+      (is (contains?
+           (-> server :state deref :snapshot keys set)
+           [(:identity client) ::i/live? true])))
+
     (testing "client events relayed to server"
       (client/send! client [:assert entity ::name "bob"]
                            [:assert entity ::email "bob@example.com"])
       (Thread/sleep 25)
       (is (= (-> client :state deref :snapshot keys set)
              (-> server :state deref :snapshot keys set)
-             #{[entity ::i/live? true]
+             #{[(:identity client) ::i/live? true]
+               [entity ::i/live? true]
                [entity ::name "bob"]
                [entity ::email "bob@example.com"]
                [entity ::clock 0]})))))
@@ -66,13 +72,19 @@
           (is (= (-> client :state deref :snapshot)
                  (-> server :state deref :snapshot))))
 
+        (testing "connected client stored in state"
+          (is (contains?
+               (-> server :state deref :snapshot keys set)
+               [(:identity client) ::i/live? true])))
+
         (testing "client events relayed to server"
           (client/send! client [:assert entity ::name "bob"]
                                [:assert entity ::email "bob@example.com"])
           (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot keys set)
                  (-> server :state deref :snapshot keys set)
-                 #{[entity ::i/live? true]
+                 #{[(:identity client) ::i/live? true]
+                   [entity ::i/live? true]
                    [entity ::name "bob"]
                    [entity ::email "bob@example.com"]
                    [entity ::clock 0]})))

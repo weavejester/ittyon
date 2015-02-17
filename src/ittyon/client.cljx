@@ -4,7 +4,15 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require #+clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
             #+cljs [cljs.core.async :as a :refer [<! >!]]
-            [ittyon.core :as i]))
+            #+clj  [intentions.core :refer [defconduct]]
+            #+cljs [intentions.core :refer-macros [defconduct]]
+            [ittyon.core :as i]
+            [medley.core :refer [boolean?]]))
+
+(derive ::connected? ::i/aspect)
+
+(defconduct i/-valid? [:assert ::connected?] [_ [_ _ _ v _]]
+  (boolean? v))
 
 (defmulti ^:no-doc receive!
   (fn [client event] (first event)))

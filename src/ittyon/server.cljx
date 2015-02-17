@@ -5,6 +5,7 @@
   (:require #+clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
             #+cljs [cljs.core.async :as a :refer [<! >!]]
             [ittyon.core :as i]
+            [ittyon.client :as ic]
             [medley.core :refer [deref-reset!]]))
 
 (defn server
@@ -36,12 +37,10 @@
   [server]
   (swap! (:state server) i/tick (i/time)))
 
-(derive :ittyon.client/connected? ::i/aspect)
-
 (defn- connect-event [client-id]
   [:commit
    [:assert client-id ::i/live? true (i/time)]
-   [:assert client-id :ittyon.client/connected? true (i/time)]])
+   [:assert client-id ::ic/connected? true (i/time)]])
 
 (defn- disconnect-event [client-id]
   [:commit [:revoke client-id ::i/live? true (i/time)]])

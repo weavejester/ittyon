@@ -36,8 +36,12 @@
   [server]
   (swap! (:state server) i/tick (i/time)))
 
+(derive :ittyon.client/connected? ::i/aspect)
+
 (defn- connect-event [client-id]
-  [:commit [:assert client-id ::i/live? true (i/time)]])
+  [:commit
+   [:assert client-id ::i/live? true (i/time)]
+   [:assert client-id :ittyon.client/connected? true (i/time)]])
 
 (defn- disconnect-event [client-id]
   [:commit [:revoke client-id ::i/live? true (i/time)]])

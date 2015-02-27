@@ -19,7 +19,7 @@ has a lot in common with [Datomic][2].
 Add the following to your project dependencies:
 
 ```clojure
-[ittyon "0.3.0"]
+[ittyon "0.3.1"]
 ```
 
 ## Overview

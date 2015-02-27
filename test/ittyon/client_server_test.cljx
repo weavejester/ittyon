@@ -38,7 +38,7 @@
   (let [[server client] (<!! (setup-server-client init-state))]
 
     (testing "identity of client"
-      (i/uuid? (:identity client)))
+      (i/uuid? (:id client)))
     
     (testing "initial state transferred to client"
       (is (= (-> client :state deref :snapshot)
@@ -46,8 +46,8 @@
 
     (testing "connected client stored in state"
       (let [facts (-> server :state deref :snapshot keys set)]
-        (is (contains? facts [(:identity client) ::i/live? true]))
-        (is (contains? facts [(:identity client) ::client/connected? true]))))
+        (is (contains? facts [(:id client) ::i/live? true]))
+        (is (contains? facts [(:id client) ::client/connected? true]))))
 
     (testing "client events relayed to server"
       (client/send! client [:assert entity ::name "bob"]
@@ -55,8 +55,8 @@
       (Thread/sleep 25)
       (is (= (-> client :state deref :snapshot keys set)
              (-> server :state deref :snapshot keys set)
-             #{[(:identity client) ::i/live? true]
-               [(:identity client) ::client/connected? true]
+             #{[(:id client) ::i/live? true]
+               [(:id client) ::client/connected? true]
                [entity ::i/live? true]
                [entity ::name "bob"]
                [entity ::email "bob@example.com"]
@@ -67,7 +67,7 @@
   (go (let [[server client] (<! (setup-server-client init-state))]
 
         (testing "identity of client"
-          (i/uuid? (:identity client)))
+          (i/uuid? (:id client)))
 
         (testing "initial state transferred to client"
           (is (= (-> client :state deref :snapshot)
@@ -75,8 +75,8 @@
 
         (testing "connected client stored in state"
           (let [facts (-> server :state deref :snapshot keys set)]
-            (is (contains? facts [(:identity client) ::i/live? true]))
-            (is (contains? facts [(:identity client) ::client/connected? true]))))
+            (is (contains? facts [(:id client) ::i/live? true]))
+            (is (contains? facts [(:id client) ::client/connected? true]))))
 
         (testing "client events relayed to server"
           (client/send! client [:assert entity ::name "bob"]
@@ -84,8 +84,8 @@
           (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot keys set)
                  (-> server :state deref :snapshot keys set)
-                 #{[(:identity client) ::i/live? true]
-                   [(:identity client) ::client/connected? true]
+                 #{[(:id client) ::i/live? true]
+                   [(:id client) ::client/connected? true]
                    [entity ::i/live? true]
                    [entity ::name "bob"]
                    [entity ::email "bob@example.com"]

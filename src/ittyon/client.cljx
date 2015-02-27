@@ -44,10 +44,10 @@
   (swap! (:state client) i/tick (+ (i/time) @(:time-offset client))))
 
 (defn- make-client
-  [socket [event-type {:keys [identity time reset]}]]
+  [socket [event-type {:keys [id time reset]}]]
   {:pre [(= event-type :init)]}
   {:socket      socket
-   :identity    identity
+   :id          id
    :state       (atom (i/state reset))
    :time-offset (atom (- (i/time) time))})
 

@@ -46,9 +46,9 @@
   [:commit [:revoke client-id ::i/live? true (i/time)]])
 
 (defn- handshake-event [client-id init-state]
-  [:init {:identity client-id
-          :time     (i/time)
-          :reset    (i/facts init-state)}])
+  [:init {:id    client-id
+          :time  (i/time)
+          :reset (i/facts init-state)}])
 
 (defn- make-handler [server socket]
   (fn [event]

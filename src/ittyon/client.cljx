@@ -28,15 +28,17 @@
 (defmethod receive! :time [client event]
   (reset! (:time-offset client) (- (i/time) (second event))))
 
+(defn- local? [[_ _ a _]]
+  (isa? a ::local))
+
 (defn send!
   "Send one or more messages to the client. A message should be a transition
   with the time element omitted, i.e. `[o e a v]`."
   [client & messages]
   (let [time  (+ (i/time) @(:time-offset client))
-        msgs  (for [m messages] (conj (vec m) time))
-        event (vec (cons :commit msgs))]
-    (receive! client event)
-    (a/put! (:socket client) event)))
+        msgs  (for [m messages] (conj (vec m) time))]
+    (receive! client `[:commit ~@msgs])
+    (a/put! (:socket client) `[:commit ~@(remove local? msgs)])))
 
 (defn tick!
   "Move the clock forward on the client."

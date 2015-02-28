@@ -8,14 +8,16 @@
             #+clj  [clojure.core.async :as a :refer [go <! <!!]]
             #+cljs [cljs.core.async :as a :refer [<!]]
             #+clj  [intentions.core :refer [defconduct]]
+            [clojure.set :as set]
             [ittyon.core :as i]
             [ittyon.client :as client]
             [ittyon.server :as server]
             [chord.channels :refer [bidi-ch]]))
 
-(i/derive ::name  ::i/aspect ::i/singular)
-(i/derive ::email ::i/aspect ::i/singular)
-(i/derive ::clock ::i/aspect ::i/singular)
+(i/derive ::name      ::i/aspect ::i/singular)
+(i/derive ::email     ::i/aspect ::i/singular)
+(i/derive ::clock     ::i/aspect ::i/singular)
+(i/derive ::selected? ::i/aspect ::i/singular ::client/local)
 
 (def entity (i/uuid))
 
@@ -60,7 +62,15 @@
                [entity ::i/live? true]
                [entity ::name "bob"]
                [entity ::email "bob@example.com"]
-               [entity ::clock 0]})))))
+               [entity ::clock 0]})))
+
+    (testing "local events not relayed to server"
+      (client/send! client [:assert entity ::selected? true])
+      (Thread/sleep 25)
+      (is (= (set/difference
+              (-> client :state deref :snapshot keys set)
+              (-> server :state deref :snapshot keys set))
+             #{[entity ::selected? true]})))))
 
 #+cljs
 (deftest ^:async test-async
@@ -90,4 +100,12 @@
                    [entity ::name "bob"]
                    [entity ::email "bob@example.com"]
                    [entity ::clock 0]})))
+
+        (testing "local events not relayed to server"
+          (client/send! client [:assert entity ::selected? true])
+          (<! (a/timeout 25))
+          (is (= (set/difference
+                  (-> client :state deref :snapshot keys set)
+                  (-> server :state deref :snapshot keys set))
+                 #{[entity ::selected? true]})))
         (done))))

@@ -9,7 +9,7 @@
                  [intentions "0.1.3"]
                  [cljs-uuid "0.0.4"]]
   :plugins [[lein-cljsbuild "1.0.4"]
-            [codox "0.8.10"]]
+            [codox "0.8.11"]]
   :codox {:defaults {:doc/format :markdown}}
   :cljx
   {:builds

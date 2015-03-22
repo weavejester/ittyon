@@ -8,7 +8,7 @@
                  [medley "0.5.5"]
                  [intentions "0.1.3"]
                  [cljs-uuid "0.0.4"]]
-  :plugins [[lein-cljsbuild "1.0.4"]
+  :plugins [[lein-cljsbuild "1.0.5"]
             [codox "0.8.11"]]
   :codox {:defaults {:doc/format :markdown}}
   :cljx
@@ -30,10 +30,10 @@
   {"test-cljs" ["do" ["cljx" "once"] ["cljsbuild" "test"]]
    "test-all"  ["do" ["test"] ["cljsbuild" "test"]]}
   :profiles
-  {:provided {:dependencies [[org.clojure/clojurescript "0.0-2760"]]}
+  {:provided {:dependencies [[org.clojure/clojurescript "0.0-2850"]]}
    :dev      {:dependencies [[org.clojure/tools.namespace "0.2.9"]
                              [criterium "0.4.3"]
                              [jarohen/chord "0.6.0"]]
               :jvm-opts ^:replace {}
-              :plugins [[com.keminglabs/cljx "0.5.0"]
+              :plugins [[com.keminglabs/cljx "0.6.0"]
                         [com.cemerick/clojurescript.test "0.3.3"]]}})

@@ -33,7 +33,8 @@
 
 (defn send!
   "Send one or more messages to the client. A message should be a transition
-  with the time element omitted, i.e. `[o e a v]`."
+  with the time element omitted, i.e. `[o e a v]`. Aspects deriving from
+  `:ittyon.client/local` are not relayed to the server."
   [client & messages]
   (let [time  (+ (i/time) @(:time-offset client))
         msgs  (for [m messages] (conj (vec m) time))]

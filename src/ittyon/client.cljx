@@ -36,8 +36,8 @@
   with the time element omitted, i.e. `[o e a v]`. Aspects deriving from
   `:ittyon.client/local` are not relayed to the server."
   [client & messages]
-  (let [time  (+ (i/time) @(:time-offset client))
-        msgs  (for [m messages] (conj (vec m) time))]
+  (let [time (+ (i/time) @(:time-offset client))
+        msgs (for [m messages] (conj (vec m) time))]
     (receive! client `[:commit ~@msgs])
     (a/put! (:socket client) `[:commit ~@(remove local? msgs)])))
 

@@ -110,3 +110,15 @@
                       (i/commit [:revoke child-id ::i/live? true time]))]
     (is (get-in state [:snapshot [parent-id ::child child-id]]))
     (is (not (get-in state* [:snapshot [parent-id ::child child-id]])))))
+
+(deftest test-transact!
+  (let [entity (i/uuid)
+        time   (i/time)
+        state  (atom (i/state))]
+    (i/derive ::name ::i/aspect ::i/singular)
+    (i/transact! state [[:assert entity ::i/live? true time]
+                        [:assert entity ::name "alice" time]
+                        [:assert entity ::name "bob" time]])
+    (is (= (:snapshot @state)
+           {[entity ::i/live? true] time
+            [entity ::name "bob"] time}))))

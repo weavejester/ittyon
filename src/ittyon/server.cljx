@@ -30,7 +30,7 @@
 (defmethod receive! :default [_ _] nil)
 
 (defmethod receive! :commit [server event]
-  (swap! (:state server) #(reduce i/commit % (rest event))))
+  (i/transact! (:state server) (rest event)))
 
 (defn tick!
   "Move the clock forward on the server."

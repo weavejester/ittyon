@@ -220,3 +220,9 @@
   (->> (:snapshot state)
        (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
        (reduce commit state)))
+
+(defn transact!
+  "Takes an atom containing a state and an ordered collection of transitions,
+  commits each transition to the atom."
+  [state-atom transitions]
+  (swap! state-atom #(reduce commit % transitions)))

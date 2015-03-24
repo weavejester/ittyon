@@ -251,7 +251,8 @@
 
 (defn transact!
   "Takes an atom containing a state and an ordered collection of transitions,
-  commits each transition to the atom."
+  then commits the transitions to the atom. Any effects associated with the
+  transitions are then applied."
   [state-atom transitions]
   (swap! state-atom #(reduce commit % transitions))
   (doseq [t transitions]

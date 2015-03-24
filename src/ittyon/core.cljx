@@ -244,7 +244,8 @@
 
 (defn effect!
   "Takes an atom containing a state and a transition, then applies any
-  asynchronous effects associated with the transition to the state atom."
+  asynchronous effects associated with the transition to the state atom.
+  Extend using the [[-effect!]] intention."
   [state-atom transition]
   (-effect! (effect-callback state-atom) transition))
 

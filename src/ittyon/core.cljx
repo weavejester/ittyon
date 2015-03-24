@@ -231,11 +231,22 @@
 
 (defconduct -effect! :default [_ _])
 
+(declare effect!)
+
+(defn- effect-callback [state-atom]
+  (fn [f]
+    (loop []
+      (let [s @state-atom, ts (f s)]
+        (if (compare-and-set! state-atom s (reduce commit s ts))
+          (doseq [t ts]
+            (effect! state-atom t))
+          (recur))))))
+
 (defn effect!
   "Takes an atom containing a state and a transition, then applies any
   asynchronous effects associated with the transition to the state atom."
   [state-atom transition]
-  (-effect! (fn [f] (swap! state-atom #(reduce commit % (f %)))) transition))
+  (-effect! (effect-callback state-atom) transition))
 
 (defn transact!
   "Takes an atom containing a state and an ordered collection of transitions,

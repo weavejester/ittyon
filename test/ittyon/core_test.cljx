@@ -115,18 +115,23 @@
 
 (i/derive ::resource-name ::i/aspect ::i/singular)
 (i/derive ::resource-data ::i/aspect ::i/singular)
+(i/derive ::loaded?       ::i/aspect ::i/singular)
 
 (def resource-data {"foo.txt" "Hello World"})
 
 (defconduct i/-effect! [:assert ::resource-name] [cb [o e a v t]]
   (cb (fn [s] [[:assert e ::resource-data (resource-data v) t]])))
 
+(defconduct i/-effect! [:assert ::resource-data] [cb [o e a v t]]
+  (cb (fn [s] [[:assert e ::loaded? true t]])))
+
 (deftest test-effect!
   (let [entity (i/uuid)
         time   (i/time)
         state  (atom (i/commit (i/state) [:assert entity ::i/live? true time]))]
     (i/effect! state [:assert entity ::resource-name "foo.txt" time])
-    (is (get-in @state [:snapshot [entity ::resource-data "Hello World"]]))))
+    (is (get-in @state [:snapshot [entity ::resource-data "Hello World"]]))
+    (is (get-in @state [:snapshot [entity ::loaded? true]]))))
 
 (deftest test-transact!
   (let [entity (i/uuid)
@@ -140,4 +145,5 @@
            {[entity ::i/live? true] time
             [entity ::name "alice"] time
             [entity ::resource-name "foo.txt"] time
-            [entity ::resource-data "Hello World"] time}))))
+            [entity ::resource-data "Hello World"] time
+            [entity ::loaded? true] time}))))

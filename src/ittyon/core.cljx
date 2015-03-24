@@ -221,8 +221,26 @@
        (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
        (reduce commit state)))
 
+(defintent -effect!
+  "An intention that asynchronously produces effect transitions via a callback.
+  The callback expects a function that takes a state and returns an ordered
+  collection of transitions. Dispatches off the transition op and the aspect."
+  {:arglists '([callback transition])}
+  :dispatch transition-key
+  :combine (constantly nil))
+
+(defconduct -effect! :default [_ _])
+
+(defn effect!
+  "Takes an atom containing a state and a transition, then applies any
+  asynchronous effects associated with the transition to the state atom."
+  [state-atom transition]
+  (-effect! (fn [f] (swap! state-atom #(reduce commit % (f %)))) transition))
+
 (defn transact!
   "Takes an atom containing a state and an ordered collection of transitions,
   commits each transition to the atom."
   [state-atom transitions]
-  (swap! state-atom #(reduce commit % transitions)))
+  (swap! state-atom #(reduce commit % transitions))
+  (doseq [t transitions]
+    (effect! state-atom t)))

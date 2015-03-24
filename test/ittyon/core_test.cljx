@@ -1,7 +1,9 @@
 (ns ittyon.core-test
   (:require #+clj  [clojure.test :refer :all]
             #+cljs [cemerick.cljs.test :as t :refer-macros [is deftest testing done]]
-            [ittyon.core :as i]))
+            [ittyon.core :as i]
+            #+clj  [intentions.core :refer [defconduct]]
+            #+cljs [intentions.core :refer-macros [defconduct]]))
 
 (deftest test-time
   (is (= (integer? (i/time)))))
@@ -111,6 +113,21 @@
     (is (get-in state [:snapshot [parent-id ::child child-id]]))
     (is (not (get-in state* [:snapshot [parent-id ::child child-id]])))))
 
+(i/derive ::resource-name ::i/aspect ::i/singular)
+(i/derive ::resource-data ::i/aspect ::i/singular)
+
+(def resource-data {"foo.txt" "Hello World"})
+
+(defconduct i/-effect! [:assert ::resource-name] [cb [o e a v t]]
+  (cb (fn [s] [[:assert e ::resource-data (resource-data v) t]])))
+
+(deftest test-effect!
+  (let [entity (i/uuid)
+        time   (i/time)
+        state  (atom (i/commit (i/state) [:assert entity ::i/live? true time]))]
+    (i/effect! state [:assert entity ::resource-name "foo.txt" time])
+    (is (get-in @state [:snapshot [entity ::resource-data "Hello World"]]))))
+
 (deftest test-transact!
   (let [entity (i/uuid)
         time   (i/time)
@@ -118,7 +135,9 @@
     (i/derive ::name ::i/aspect ::i/singular)
     (i/transact! state [[:assert entity ::i/live? true time]
                         [:assert entity ::name "alice" time]
-                        [:assert entity ::name "bob" time]])
+                        [:assert entity ::resource-name "foo.txt" time]])
     (is (= (:snapshot @state)
            {[entity ::i/live? true] time
-            [entity ::name "bob"] time}))))
+            [entity ::name "alice"] time
+            [entity ::resource-name "foo.txt"] time
+            [entity ::resource-data "Hello World"] time}))))

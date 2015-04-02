@@ -213,13 +213,15 @@
       (reduce commit state reactions))
     state))
 
+(defn- tick-reactions [s t]
+  (mapcat (fn [[[e a _] _]] (react s [:tick e a t])) (:snapshot s)))
+
 (defn tick
   "Update a state by moving the clock forward to a new time. This may generate
   reactions that alter the state."
   [state time]
-  (->> (:snapshot state)
-       (mapcat (fn [[[e a _] _]] (react state [:tick e a time])))
-       (reduce commit state)))
+  (-> (reduce commit state (tick-reactions state time))
+      (assoc :last-tick time)))
 
 (defintent -effect!
   "An intention that asynchronously produces effect transitions via a callback.

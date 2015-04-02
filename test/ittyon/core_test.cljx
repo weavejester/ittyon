@@ -96,6 +96,11 @@
            {[entity ::i/live? true] time
             [entity ::name "bob"] time}))))
 
+(deftest test-tick
+  (testing "last tick recorded"
+    (is (= (-> (i/state) (i/tick 123456789) :last-tick)
+           123456789))))
+
 (deftest test-refs
   (i/derive ::name ::i/aspect ::i/singular)
   (i/derive ::child ::i/aspect ::i/ref)

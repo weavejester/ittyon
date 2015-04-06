@@ -11,8 +11,9 @@
 (defn server
   "Create a new server with the supplied initial state."
   [init-state]
-  {:state   (atom init-state)
-   :sockets (atom #{})})
+  {:state      (atom init-state)
+   :sockets    (atom #{})
+   :ping-delay 10000})
 
 (defn shutdown!
   "Shutdown the supplied server and atomically close all open sockets."
@@ -60,14 +61,20 @@
   Used in conjuction with [[client/connect!]]."
   [{:keys [sockets state] :as server} socket]
   (when (swap! sockets #(some-> % (conj socket)))
-    (let [handle!   (make-handler server socket)
-          client-id (i/uuid)]
+    (let [handle!    (make-handler server socket)
+          ping-timer (partial a/timeout (:ping-delay server))
+          client-id  (i/uuid)]
       (go (handle! (connect-event client-id))
           (>! socket (handshake-event client-id @state))
-          (loop []
-            (when-let [event (<! socket)]
-              (handle! event)
-              (recur)))
+          (loop [timer (ping-timer)]
+            (let [[val port] (a/alts! [socket timer])]
+              (if (identical? port socket)
+                (when val
+                  (handle! val)
+                  (recur timer))
+                (do
+                  (>! socket [:time (i/time)])
+                  (recur (ping-timer))))))
           (handle! (disconnect-event client-id))
           (swap! sockets disj socket)
           (a/close! socket)))))

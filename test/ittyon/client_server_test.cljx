@@ -109,3 +109,28 @@
                   (-> server :state deref :snapshot keys set))
                  #{[entity ::selected? true]})))
         (done))))
+
+#+clj
+(deftest test-ping
+  (let [server (-> (server/server init-state)
+                   (assoc :ping-delay 25))
+        ch     (a/chan)]
+    (server/accept! server ch)
+    (is (= (first (<!! ch)) :init))
+    (Thread/sleep 50)
+    (is (= (first (<!! ch)) :time))
+    (Thread/sleep 50)
+    (is (= (first (<!! ch)) :time))))
+
+#+cljs
+(deftest ^:async test-ping
+  (let [server (-> (server/server init-state)
+                   (assoc :ping-delay 25))
+        ch     (a/chan)]
+    (go (server/accept! server ch)
+        (is (= (first (<! ch)) :init))
+        (<! (a/timeout 50))
+        (is (= (first (<! ch)) :time))
+        (<! (a/timeout 50))
+        (is (= (first (<! ch)) :time))
+        (done))))

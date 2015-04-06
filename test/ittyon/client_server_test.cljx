@@ -5,7 +5,7 @@
                    [intentions.core :refer [defconduct]])
   (:require #+clj  [clojure.test :refer :all]
             #+cljs [cemerick.cljs.test :as t]
-            #+clj  [clojure.core.async :as a :refer [go <! <!!]]
+            #+clj  [clojure.core.async :as a :refer [go <! >! <!! >!!]]
             #+cljs [cljs.core.async :as a :refer [<!]]
             #+clj  [intentions.core :refer [defconduct]]
             [clojure.set :as set]
@@ -112,25 +112,57 @@
 
 #+clj
 (deftest test-ping
-  (let [server (-> (server/server init-state)
-                   (assoc :ping-delay 25))
-        ch     (a/chan)]
-    (server/accept! server ch)
-    (is (= (first (<!! ch)) :init))
-    (Thread/sleep 50)
-    (is (= (first (<!! ch)) :time))
-    (Thread/sleep 50)
-    (is (= (first (<!! ch)) :time))))
+  (testing "client"
+    (let [ch     (a/chan)
+          client (client/connect! ch)]
+      (>!! ch [:init {:id (i/uuid) :time (i/time) :reset #{}}])
+      (let [time-offset (:time-offset (<!! client))]
+        (is (<= 0 @time-offset 25))
+
+        (>!! ch [:time (+ (i/time) 1000)])
+        (Thread/sleep 25)
+        (is (<= -1000 @time-offset -975))
+
+        (>!! ch [:time (- (i/time) 1000)])
+        (Thread/sleep 25)
+        (is (<= 1000 @time-offset 1025)))))
+
+  (testing "server"
+    (let [server (-> (server/server init-state)
+                     (assoc :ping-delay 25))
+          ch     (a/chan)]
+      (server/accept! server ch)
+      (is (= (first (<!! ch)) :init))
+      (Thread/sleep 50)
+      (is (= (first (<!! ch)) :time))
+      (Thread/sleep 50)
+      (is (= (first (<!! ch)) :time)))))
 
 #+cljs
 (deftest ^:async test-ping
-  (let [server (-> (server/server init-state)
-                   (assoc :ping-delay 25))
-        ch     (a/chan)]
-    (go (server/accept! server ch)
-        (is (= (first (<! ch)) :init))
-        (<! (a/timeout 50))
-        (is (= (first (<! ch)) :time))
-        (<! (a/timeout 50))
-        (is (= (first (<! ch)) :time))
-        (done))))
+  (go (testing "client"
+        (let [ch     (a/chan)
+              client (client/connect! ch)]
+          (>! ch [:init {:id (i/uuid) :time (i/time) :reset #{}}])
+          (let [time-offset (:time-offset (<! client))]
+            (is (<= 0 @time-offset 25))
+
+            (>! ch [:time (+ (i/time) 1000)])
+            (<! (a/timeout 25))
+            (is (<= -1000 @time-offset -975))
+
+            (>! ch [:time (- (i/time) 1000)])
+            (<! (a/timeout 25))
+            (is (<= 1000 @time-offset 1025)))))
+
+      (testing "server"
+        (let [server (-> (server/server init-state)
+                         (assoc :ping-delay 25))
+              ch     (a/chan)]
+          (server/accept! server ch)
+          (is (= (first (<! ch)) :init))
+          (<! (a/timeout 50))
+          (is (= (first (<! ch)) :time))
+          (<! (a/timeout 50))
+          (is (= (first (<! ch)) :time))
+          (done)))))

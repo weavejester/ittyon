@@ -58,6 +58,12 @@
     (is (= (i/update eavt-state [:revoke :e ::a :v :t])
            (assoc (i/state) :count 2)))))
 
+(deftest test-facts
+  (is (= (i/facts eavt-state)
+         [[:e ::a :v :t]]))
+  (is (= (i/facts (i/update eavt-state [:assert :f ::a :v :t]))
+         [[:e ::a :v :t] [:f ::a :v :t]])))
+
 (deftest test-transition?
   (is (not (i/transition? nil)))
   (is (not (i/transition? [:o :e ::a :v :t])))

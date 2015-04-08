@@ -39,14 +39,15 @@
 (derive ::a ::i/aspect)
 
 (def eavt-state
-  {:snapshot {[:e ::a :v] :t}
+  {:snapshot {[:e ::a :v] [:t 0]}
+   :count 1
    :index {:eavt {:e {::a {:v :t}}}
            :aevt {::a {:e {:v :t}}}
            :avet {::a {:v {:e :t}}}}})
 
 (deftest test-state
   (testing "empty"
-    (is (= (i/state) {:snapshot {}, :index {}})))
+    (is (= (i/state) {:snapshot {}, :index {}, :count 0})))
   (testing "not empty"
     (is (= (i/state #{[:e ::a :v :t]}) eavt-state))))
 
@@ -54,7 +55,8 @@
   (testing "assert"
     (is (= (i/update (i/state) [:assert :e ::a :v :t]) eavt-state)))
   (testing "revoke"
-    (is (= (i/update eavt-state [:revoke :e ::a :v :t]) (i/state)))))
+    (is (= (i/update eavt-state [:revoke :e ::a :v :t])
+           (assoc (i/state) :count 2)))))
 
 (deftest test-transition?
   (is (not (i/transition? nil)))
@@ -93,8 +95,8 @@
                (i/commit [:assert entity ::name "alice" time])
                (i/commit [:assert entity ::name "bob" time])
                :snapshot)
-           {[entity ::i/live? true] time
-            [entity ::name "bob"] time}))))
+           {[entity ::i/live? true] [time 0]
+            [entity ::name "bob"]   [time 2]}))))
 
 (deftest test-tick
   (testing "last tick recorded"
@@ -147,8 +149,8 @@
                         [:assert entity ::name "alice" time]
                         [:assert entity ::resource-name "foo.txt" time]])
     (is (= (:snapshot @state)
-           {[entity ::i/live? true] time
-            [entity ::name "alice"] time
-            [entity ::resource-name "foo.txt"] time
-            [entity ::resource-data "Hello World"] time
-            [entity ::loaded? true] time}))))
+           {[entity ::i/live? true] [time 0]
+            [entity ::name "alice"] [time 1]
+            [entity ::resource-name "foo.txt"] [time 2]
+            [entity ::resource-data "Hello World"] [time 3]
+            [entity ::loaded? true] [time 4]}))))

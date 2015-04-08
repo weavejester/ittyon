@@ -102,10 +102,10 @@
 
 (defn update-snapshot
   "Update the state's snapshot for a single transition."
-  [state [o e a v t]]
+  [{n :count :as state} [o e a v t]]
   (case o
-    :assert (update-in state [:snapshot] assoc [e a v] t)
-    :revoke (update-in state [:snapshot] dissoc [e a v] t)))
+    :assert (update-in state [:snapshot] assoc [e a v] [t n])
+    :revoke (update-in state [:snapshot] dissoc [e a v])))
 
 (defn update
   "Update a state with a single transition and return the new state. Combines
@@ -113,17 +113,20 @@
   [state transition]
   (-> state
       (update-snapshot transition)
-      (index transition)))
+      (index transition)
+      (update-in [:count] inc)))
 
 (defn state
   "Return a new state, either empty or prepopulated with a collection of facts."
-  ([]      {:snapshot {}, :index {}})
+  ([]      {:snapshot {}, :index {}, :count 0})
   ([facts] (reduce update (state) (for [[e a v t] facts] [:assert e a v t]))))
 
 (defn facts
-  "Return a seq of facts held by the supplied state."
+  "Return an ordered collection of facts held by the supplied state."
   [state]
-  (for [[[e a v] t] (:snapshot state)] [e a v t]))
+  (->> (:snapshot state)
+       (sort-by (fn [[_ [_ n]]] n))
+       (map (fn [[[e a v] [t _]]] [e a v t]))))
 
 (defintent -valid?
   "An intention to determine whether a transition is valid for a particular

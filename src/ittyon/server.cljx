@@ -26,12 +26,13 @@
     (a/put! sock message)))
 
 (defmulti ^:no-doc receive!
-  (fn [server event] (first event)))
+  (fn [server socket event] (first event)))
 
-(defmethod receive! :default [_ _] nil)
+(defmethod receive! :default [_ _ _] nil)
 
-(defmethod receive! :commit [server event]
-  (i/transact! (:state server) (rest event)))
+(defmethod receive! :commit [server socket event]
+  (i/transact! (:state server) (rest event))
+  (broadcast! server socket event))
 
 (defn tick!
   "Move the clock forward on the server."
@@ -51,30 +52,23 @@
           :time  (i/time)
           :reset (i/facts init-state)}])
 
-(defn- make-handler [server socket]
-  (fn [event]
-    (receive! server event)
-    (broadcast! server socket event)))
-
 (defn accept!
   "Accept a new connection in the form of a bi-directional core.async channel.
   Used in conjuction with [[client/connect!]]."
-  [{:keys [sockets state] :as server} socket]
+  [{:keys [sockets state ping-delay] :as server} socket]
   (when (swap! sockets #(some-> % (conj socket)))
-    (let [handle!    (make-handler server socket)
-          ping-timer (partial a/timeout (:ping-delay server))
-          client-id  (i/uuid)]
-      (go (handle! (connect-event client-id))
+    (let [client-id (i/uuid)]
+      (go (receive! server socket (connect-event client-id))
           (>! socket (handshake-event client-id @state))
-          (loop [timer (ping-timer)]
+          (loop [timer (a/timeout ping-delay)]
             (let [[val port] (a/alts! [socket timer])]
               (if (identical? port socket)
                 (when val
-                  (handle! val)
+                  (receive! server socket val)
                   (recur timer))
                 (do
                   (>! socket [:time (i/time)])
-                  (recur (ping-timer))))))
-          (handle! (disconnect-event client-id))
+                  (recur (a/timeout ping-delay))))))
+          (receive! server socket (disconnect-event client-id))
           (swap! sockets disj socket)
           (a/close! socket)))))

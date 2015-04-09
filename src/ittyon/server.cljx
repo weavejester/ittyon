@@ -25,14 +25,18 @@
   (doseq [sock @(:sockets server) :when (not= sock socket)]
     (a/put! sock message)))
 
+(defn- local-transition? [[_ _ a _ _]]
+  (isa? a ::local))
+
 (defmulti ^:no-doc receive!
   (fn [server socket event] (first event)))
 
 (defmethod receive! :default [_ _ _] nil)
 
-(defmethod receive! :commit [server socket event]
-  (i/transact! (:state server) (rest event))
-  (broadcast! server socket event))
+(defmethod receive! :commit [server socket [_ & transitions]]
+  (i/transact! (:state server) transitions)
+  (when-let [ts (seq (remove local-transition? transitions))]
+    (broadcast! server socket `[:commit ~@ts])))
 
 (defn tick!
   "Move the clock forward on the server."
@@ -47,10 +51,13 @@
 (defn- disconnect-event [client-id]
   [:commit [:revoke client-id ::i/live? true (i/time)]])
 
+(defn- local-fact? [[_ a _ _]]
+  (isa? a ::local))
+
 (defn- handshake-event [client-id init-state]
   [:init {:id    client-id
           :time  (i/time)
-          :reset (i/facts init-state)}])
+          :reset (remove local-fact? (i/facts init-state))}])
 
 (defn accept!
   "Accept a new connection in the form of a bi-directional core.async channel.

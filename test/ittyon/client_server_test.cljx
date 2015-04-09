@@ -18,14 +18,16 @@
 (i/derive ::email     ::i/aspect ::i/singular)
 (i/derive ::clock     ::i/aspect ::i/singular)
 (i/derive ::selected? ::i/aspect ::i/singular ::client/local)
+(i/derive ::hidden?   ::i/aspect ::i/singular ::server/local)
 
 (def entity (i/uuid))
 
 (def init-state
-  (i/state #{[entity ::i/live? true (i/time)]
-             [entity ::name "alice" (i/time)]
-             [entity ::email "alice@example.com" (i/time)]
-             [entity ::clock 0 (i/time)]}))
+  (i/state [[entity ::i/live? true (i/time)]
+            [entity ::name "alice" (i/time)]
+            [entity ::email "alice@example.com" (i/time)]
+            [entity ::clock 0 (i/time)]
+            [entity ::hidden? false (i/time)]]))
 
 (defn setup-server-client [state]
   (let [server  (server/server state)
@@ -43,8 +45,9 @@
       (i/uuid? (:id client)))
     
     (testing "initial state transferred to client"
-      (is (= (-> client :state deref :snapshot)
-             (-> server :state deref :snapshot))))
+      (is (= (-> client :state deref :snapshot keys set)
+             (-> server :state deref :snapshot keys set
+                 (disj [entity ::hidden? false])))))
 
     (testing "connected client stored in state"
       (let [facts (-> server :state deref :snapshot keys set)]
@@ -56,7 +59,8 @@
                            [:assert entity ::email "bob@example.com"])
       (Thread/sleep 25)
       (is (= (-> client :state deref :snapshot keys set)
-             (-> server :state deref :snapshot keys set)
+             (-> server :state deref :snapshot keys set
+                 (disj [entity ::hidden? false]))
              #{[(:id client) ::i/live? true]
                [(:id client) ::client/connected? true]
                [entity ::i/live? true]
@@ -80,8 +84,9 @@
           (i/uuid? (:id client)))
 
         (testing "initial state transferred to client"
-          (is (= (-> client :state deref :snapshot)
-                 (-> server :state deref :snapshot))))
+          (is (= (-> client :state deref :snapshot keys set)
+                 (-> server :state deref :snapshot keys set
+                     (disj [entity ::hidden? false])))))
 
         (testing "connected client stored in state"
           (let [facts (-> server :state deref :snapshot keys set)]
@@ -93,7 +98,8 @@
                                [:assert entity ::email "bob@example.com"])
           (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot keys set)
-                 (-> server :state deref :snapshot keys set)
+                 (-> server :state deref :snapshot keys set
+                     (disj [entity ::hidden? false]))
                  #{[(:id client) ::i/live? true]
                    [(:id client) ::client/connected? true]
                    [entity ::i/live? true]

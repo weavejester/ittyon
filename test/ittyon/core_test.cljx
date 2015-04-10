@@ -126,37 +126,13 @@
     (is (get-in state [:snapshot [parent-id ::child child-id]]))
     (is (not (get-in state* [:snapshot [parent-id ::child child-id]])))))
 
-(i/derive ::resource-name ::i/aspect ::i/singular)
-(i/derive ::resource-data ::i/aspect ::i/singular)
-(i/derive ::loaded?       ::i/aspect ::i/singular)
-
-(def resource-data {"foo.txt" "Hello World"})
-
-(defconduct i/-effect! [:assert ::resource-name] [cb [o e a v t]]
-  (cb (fn [s] [[:assert e ::resource-data (resource-data v) t]])))
-
-(defconduct i/-effect! [:assert ::resource-data] [cb [o e a v t]]
-  (cb (fn [s] [[:assert e ::loaded? true t]])))
-
-(deftest test-effect!
-  (let [entity (i/uuid)
-        time   (i/time)
-        state  (atom (i/commit (i/state) [:assert entity ::i/live? true time]))]
-    (i/effect! state [:assert entity ::resource-name "foo.txt" time])
-    (is (get-in @state [:snapshot [entity ::resource-data "Hello World"]]))
-    (is (get-in @state [:snapshot [entity ::loaded? true]]))))
-
 (deftest test-transact!
   (let [entity (i/uuid)
         time   (i/time)
         state  (atom (i/state))]
     (i/derive ::name ::i/aspect ::i/singular)
     (i/transact! state [[:assert entity ::i/live? true time]
-                        [:assert entity ::name "alice" time]
-                        [:assert entity ::resource-name "foo.txt" time]])
+                        [:assert entity ::name "alice" time]])
     (is (= (:snapshot @state)
            {[entity ::i/live? true] [time 0]
-            [entity ::name "alice"] [time 1]
-            [entity ::resource-name "foo.txt"] [time 2]
-            [entity ::resource-data "Hello World"] [time 3]
-            [entity ::loaded? true] [time 4]}))))
+            [entity ::name "alice"] [time 1]}))))

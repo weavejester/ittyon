@@ -226,39 +226,8 @@
   (-> (reduce commit state (tick-reactions state time))
       (assoc :last-tick time)))
 
-(defintent -effect!
-  "An intention that asynchronously produces effect transitions via a callback.
-  The callback expects a function that takes a state and returns an ordered
-  collection of transitions. Dispatches off the transition op and the aspect."
-  {:arglists '([callback transition])}
-  :dispatch transition-key
-  :combine (constantly nil))
-
-(defconduct -effect! :default [_ _])
-
-(declare effect!)
-
-(defn- effect-callback [state-atom]
-  (fn [f]
-    (loop []
-      (let [s @state-atom, ts (f s)]
-        (if (compare-and-set! state-atom s (reduce commit s ts))
-          (doseq [t ts]
-            (effect! state-atom t))
-          (recur))))))
-
-(defn effect!
-  "Takes an atom containing a state and a transition, then applies any
-  asynchronous effects associated with the transition to the state atom.
-  Extend using the [[-effect!]] intention."
-  [state-atom transition]
-  (-effect! (effect-callback state-atom) transition))
-
 (defn transact!
   "Takes an atom containing a state and an ordered collection of transitions,
-  then commits the transitions to the atom. Any effects associated with the
-  transitions are then applied."
+  then commits the transitions to the atom."
   [state-atom transitions]
-  (swap! state-atom #(reduce commit % transitions))
-  (doseq [t transitions]
-    (effect! state-atom t)))
+  (swap! state-atom #(reduce commit % transitions)))

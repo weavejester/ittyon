@@ -230,4 +230,5 @@
   "Takes an atom containing a state and an ordered collection of transitions,
   then commits the transitions to the atom."
   [state-atom transitions]
-  (swap! state-atom #(reduce commit % transitions)))
+  (swap! state-atom #(-> (reduce commit % transitions)
+                         (assoc :last-transact transitions))))

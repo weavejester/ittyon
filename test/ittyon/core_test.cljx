@@ -135,4 +135,7 @@
                         [:assert entity ::name "alice" time]])
     (is (= (:snapshot @state)
            {[entity ::i/live? true] [time 0]
-            [entity ::name "alice"] [time 1]}))))
+            [entity ::name "alice"] [time 1]}))
+    (is (= (:last-transact @state)
+           [[:assert entity ::i/live? true time]
+            [:assert entity ::name "alice" time]]))))

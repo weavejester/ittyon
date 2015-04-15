@@ -34,7 +34,7 @@
 (defmethod receive! :default [_ _ _] nil)
 
 (defmethod receive! :commit [server socket [_ & transitions]]
-  (i/transact! (:state server) transitions)
+  (swap! (:state server) i/transact transitions)
   (when-let [ts (seq (remove local-transition? transitions))]
     (broadcast! server socket `[:commit ~@ts])))
 

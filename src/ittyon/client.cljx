@@ -20,7 +20,7 @@
 (defmethod receive! :default [_ _] nil)
 
 (defmethod receive! :commit [client event]
-  (i/transact! (:state client) (rest event)))
+  (swap! (:state client) i/transact (rest event)))
 
 (defmethod receive! :reset [client event]
   (reset! (:state client) (i/state (second event))))

@@ -226,9 +226,10 @@
   (-> (reduce commit state (tick-reactions state time))
       (assoc :last-tick time)))
 
-(defn transact!
-  "Takes an atom containing a state and an ordered collection of transitions,
-  then commits the transitions to the atom."
-  [state-atom transitions]
-  (swap! state-atom #(-> (reduce commit % transitions)
-                         (assoc :last-transact transitions))))
+(defn transact
+  "Takes a state and an ordered collection of transitions, and returns a new
+  state with the transitions committed in order. Also adds a `:last-transact`
+  key to the resulting state that contains the committed transitions."
+  [state transitions]
+  (-> (reduce commit state transitions)
+      (assoc :last-transact transitions)))

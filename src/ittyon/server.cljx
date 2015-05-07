@@ -33,10 +33,10 @@
 
 (defmethod receive! :default [_ _ _] nil)
 
-(defmethod receive! :commit [server socket [_ & transitions]]
+(defmethod receive! :transact [server socket [_ transitions]]
   (swap! (:state server) i/transact transitions)
   (when-let [ts (seq (remove local-transition? transitions))]
-    (broadcast! server socket `[:commit ~@ts])))
+    (broadcast! server socket `[:transact ~(vec ts)])))
 
 (defn tick!
   "Move the clock forward on the server."
@@ -44,12 +44,11 @@
   (swap! (:state server) i/tick (i/time)))
 
 (defn- connect-event [client-id]
-  [:commit
-   [:assert client-id ::i/live? true (i/time)]
-   [:assert client-id ::ic/connected? true (i/time)]])
+  [:transact [[:assert client-id ::i/live? true (i/time)]
+              [:assert client-id ::ic/connected? true (i/time)]]])
 
 (defn- disconnect-event [client-id]
-  [:commit [:revoke client-id ::i/live? true (i/time)]])
+  [:transact [[:revoke client-id ::i/live? true (i/time)]]])
 
 (defn- local-fact? [[_ a _ _]]
   (isa? a ::local))

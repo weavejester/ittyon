@@ -19,14 +19,14 @@
 
 (defmethod receive! :default [_ _] nil)
 
-(defmethod receive! :commit [client event]
-  (swap! (:state client) i/transact (rest event)))
+(defmethod receive! :transact [client [_ transitions]]
+  (swap! (:state client) i/transact transitions))
 
-(defmethod receive! :reset [client event]
-  (reset! (:state client) (i/state (second event))))
+(defmethod receive! :reset [client [_ facts]]
+  (reset! (:state client) (i/state facts)))
 
-(defmethod receive! :time [client event]
-  (reset! (:time-offset client) (- (i/time) (second event))))
+(defmethod receive! :time [client [_ time]]
+  (reset! (:time-offset client) (- (i/time) time)))
 
 (defn- local? [[_ _ a _]]
   (isa? a ::local))
@@ -38,8 +38,8 @@
   [client & messages]
   (let [time (+ (i/time) @(:time-offset client))
         msgs (for [m messages] (conj (vec m) time))]
-    (receive! client `[:commit ~@msgs])
-    (a/put! (:socket client) `[:commit ~@(remove local? msgs)])))
+    (receive! client `[:transact ~(vec msgs)])
+    (a/put! (:socket client) `[:transact ~(vec (remove local? msgs))])))
 
 (defn tick!
   "Move the clock forward on the client."

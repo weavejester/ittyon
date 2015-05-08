@@ -28,21 +28,32 @@
 (defmethod receive! :time [client [_ time]]
   (reset! (:time-offset client) (- (i/time) time)))
 
-(defn- local? [[_ _ a _]]
+(defn- local-transition? [[_ _ a _ _]]
   (isa? a ::local))
 
-(defn send!
-  "Send one or more messages to the client. A message should be a transition
-  with the time element omitted, i.e. `[o e a v]`. Aspects deriving from
-  `:ittyon.client/local` are not relayed to the server."
-  [client & messages]
-  (let [time (+ (i/time) @(:time-offset client))
-        msgs (for [m messages] (conj (vec m) time))]
-    (receive! client `[:transact ~(vec msgs)])
-    (a/put! (:socket client) `[:transact ~(vec (remove local? msgs))])))
+(defn ^:no-doc send! [client message]
+  (a/put! (:socket client) message))
+
+(defn- fill-transition-times [transitions offset]
+  (let [time (i/time)]
+    (for [[o e a v t] transitions]
+      [o e a v (+ (or t time) offset)])))
+
+(defn transact!
+  "Atomically update the client with an ordered collection of transitions, then
+  relay them to the server. Times may be omitted from the transitions, in which
+  case the current time will be used. Transitions with aspects deriving from
+  `:ittyon.client/local` are not relayed to the server. See also:
+  [[core/transact]]."
+  [client transitions]
+  (let [trans (fill-transition-times transitions @(:time-offset client))]
+    (doto client
+      (receive! [:transact (vec trans)])
+      (send!    [:transact (vec (remove local-transition? trans))]))))
 
 (defn tick!
-  "Move the clock forward on the client."
+  "Move the clock forward on the client. This does not send anything to the
+  server."
   [client]
   (swap! (:state client) i/tick (+ (i/time) @(:time-offset client))))
 

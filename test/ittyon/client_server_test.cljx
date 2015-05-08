@@ -55,8 +55,8 @@
         (is (contains? facts [(:id client) ::client/connected? true]))))
 
     (testing "client events relayed to server"
-      (client/send! client [:assert entity ::name "bob"]
-                           [:assert entity ::email "bob@example.com"])
+      (client/transact! client [[:assert entity ::name "bob"]
+                                [:assert entity ::email "bob@example.com"]])
       (Thread/sleep 25)
       (is (= (-> client :state deref :snapshot keys set)
              (-> server :state deref :snapshot keys set
@@ -69,12 +69,19 @@
                [entity ::clock 0]})))
 
     (testing "local events not relayed to server"
-      (client/send! client [:assert entity ::selected? true])
+      (client/transact! client [[:assert entity ::selected? true]])
       (Thread/sleep 25)
       (is (= (set/difference
               (-> client :state deref :snapshot keys set)
               (-> server :state deref :snapshot keys set))
-             #{[entity ::selected? true]})))))
+             #{[entity ::selected? true]})))
+
+    (testing "manual transition times"
+      (reset! (:time-offset client) 0)
+      (client/transact! client [[:assert entity ::clock 1 1234567890]])
+      (Thread/sleep 25)
+      (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
+             1234567890)))))
 
 #+cljs
 (deftest ^:async test-async
@@ -94,8 +101,8 @@
             (is (contains? facts [(:id client) ::client/connected? true]))))
 
         (testing "client events relayed to server"
-          (client/send! client [:assert entity ::name "bob"]
-                               [:assert entity ::email "bob@example.com"])
+          (client/transact! client [[:assert entity ::name "bob"]
+                                    [:assert entity ::email "bob@example.com"]])
           (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot keys set)
                  (-> server :state deref :snapshot keys set
@@ -108,12 +115,20 @@
                    [entity ::clock 0]})))
 
         (testing "local events not relayed to server"
-          (client/send! client [:assert entity ::selected? true])
+          (client/transact! client [[:assert entity ::selected? true]])
           (<! (a/timeout 25))
           (is (= (set/difference
                   (-> client :state deref :snapshot keys set)
                   (-> server :state deref :snapshot keys set))
                  #{[entity ::selected? true]})))
+
+        (testing "manual transition times"
+          (reset! (:time-offset client) 0)
+          (client/transact! client [[:assert entity ::clock 1 1234567890]])
+          (<! (a/timeout 25))
+          (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
+                 1234567890)))
+
         (done))))
 
 #+clj

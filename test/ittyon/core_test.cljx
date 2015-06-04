@@ -81,16 +81,29 @@
     (is (not (i/valid? state [:assert entity ::i/live? false time])))
     (is (i/valid? state [:assert entity ::i/live? true time]))))
 
+(i/derive ::toggle ::i/aspect ::i/singular)
+
+(defconduct i/-react [:assert ::toggle] [s [_ e a v t]]
+  (if (get-in s [:index :eavt e a v])
+    [[:revoke e a v t]]))
+
 (deftest test-react
   (i/derive ::name ::i/aspect ::i/singular)
   (let [entity (i/uuid)
         time   (i/time)
         state  (i/state #{[entity ::i/live? true time]
                           [entity ::name "alice" time]})]
-    (is (= (i/react state [:assert entity ::name "bob" time])
-           [[:revoke entity ::name "alice" time]]))
-    (is (= (i/react state [:revoke entity ::i/live? true time])
-           [[:revoke entity ::name "alice" time]]))))
+    (testing "singular"
+      (is (= (i/react state [:assert entity ::name "bob" time])
+             [[:revoke entity ::name "alice" time]])))
+    (testing "live?"
+      (is (= (i/react state [:revoke entity ::i/live? true time])
+             [[:revoke entity ::name "alice" time]])))
+    (testing "toggle"
+      (let [transition [:assert entity ::toggle "foo" time]]
+        (is (empty? (i/react state transition)))
+        (is (= (i/react (i/update state transition) transition)
+               [[:revoke entity ::toggle "foo" time]]))))))
 
 (deftest test-commit
   (let [entity (i/uuid)

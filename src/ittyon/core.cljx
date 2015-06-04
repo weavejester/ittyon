@@ -157,8 +157,9 @@
 
 (defintent -react
   "An intention that returns an ordered collection of reaction transitions,
-  given a state and a valid transition. Dispatches off the transition op and
-  the aspect. Concatenates the results of inherited keys."
+  given a state and a valid transition that is going to be applied to that
+  state. Dispatches off the transition op and the aspect. Concatenates the
+  results of inherited keys."
   {:arglists '([state transition])}
   :dispatch transition-key
   :combine concat)
@@ -213,9 +214,9 @@
   is not valid for the state, the state is returned unchanged."
   [state transition]
   (if (valid? state transition)
-    (let [state     (update state transition)
-          reactions (react state transition)]
-      (reduce commit state reactions))
+    (reduce commit
+            (update state transition)
+            (react state transition))
     state))
 
 (defn- tick-reactions [s t]

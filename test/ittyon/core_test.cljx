@@ -113,6 +113,8 @@
                (i/commit [:assert entity ::i/live? true time])
                (i/commit [:assert entity ::name "alice" time])
                (i/commit [:assert entity ::name "bob" time])
+               (i/commit [:assert entity ::toggle "foo" time])
+               (i/commit [:assert entity ::toggle "foo" time])
                :snapshot)
            {[entity ::i/live? true] [time 0]
             [entity ::name "bob"]   [time 2]}))))

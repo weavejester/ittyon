@@ -81,7 +81,14 @@
       (client/transact! client [[:assert entity ::clock 1 1234567890]])
       (Thread/sleep 25)
       (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
-             1234567890)))))
+             1234567890)))
+
+    (testing "invalid transitions"
+      (let [invalid-entity (i/uuid)]
+        (client/send! client [:transact [[:assert invalid-entity ::name "invalid"]]])
+        (Thread/sleep 25)
+        (let [facts (-> server :state deref :snapshot keys set)]
+          (is (not (contains? facts [invalid-entity ::name "invalid"]))))))))
 
 #+cljs
 (deftest ^:async test-async
@@ -128,6 +135,13 @@
           (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
                  1234567890)))
+
+        (testing "invalid transitions"
+          (let [invalid-entity (i/uuid)]
+            (client/send! client [:transact [[:assert invalid-entity ::name "invalid"]]])
+            (<! (a/timeout 25))
+            (let [facts (-> server :state deref :snapshot keys set)]
+              (is (not (contains? facts [invalid-entity ::name "invalid"]))))))
 
         (done))))
 

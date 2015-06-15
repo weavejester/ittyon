@@ -121,7 +121,8 @@
               [entity ::name "bob"]   [time 2]})))
     (testing "invalid commit"
       (is (thrown-with-msg?
-           clojure.lang.ExceptionInfo #"Invalid transition for state"
+           #+clj clojure.lang.ExceptionInfo #+cljs cljs.core.ExceptionInfo
+           #"Invalid transition for state"
            (i/commit (i/state) [:assert entity ::name "alice" time]))))))
 
 (deftest test-tick

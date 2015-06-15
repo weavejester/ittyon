@@ -25,18 +25,14 @@
   (doseq [sock @(:sockets server) :when (not= sock socket)]
     (a/put! sock message)))
 
+#+clj (def ^:private ex-message (memfn getMessage))
+
 (defn ^:no-doc transact! [server transitions]
   (try
     (swap! (:state server) i/transact transitions)
-    true
-    #+clj
-    (catch clojure.lang.ExceptionInfo ex
-      (println (str (.getMessage ex) ": " (:transition (ex-data ex))))
-      false)
-    #+cljs
-    (catch cljs.core.ExceptionInfo ex
+    (catch #+clj clojure.lang.ExceptionInfo #+cljs cljs.core.ExceptionInfo ex
       (println (str (ex-message ex) ": " (:transition (ex-data ex))))
-      false)))
+      nil)))
 
 (defn- local-transition? [[_ _ a _ _]]
   (isa? a ::local))

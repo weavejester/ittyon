@@ -109,15 +109,20 @@
   (let [entity (i/uuid)
         time   (i/time)]
     (i/derive ::name ::i/aspect ::i/singular)
-    (is (= (-> (i/state)
-               (i/commit [:assert entity ::i/live? true time])
-               (i/commit [:assert entity ::name "alice" time])
-               (i/commit [:assert entity ::name "bob" time])
-               (i/commit [:assert entity ::toggle "foo" time])
-               (i/commit [:assert entity ::toggle "foo" time])
-               :snapshot)
-           {[entity ::i/live? true] [time 0]
-            [entity ::name "bob"]   [time 2]}))))
+    (testing "valid commit"
+      (is (= (-> (i/state)
+                 (i/commit [:assert entity ::i/live? true time])
+                 (i/commit [:assert entity ::name "alice" time])
+                 (i/commit [:assert entity ::name "bob" time])
+                 (i/commit [:assert entity ::toggle "foo" time])
+                 (i/commit [:assert entity ::toggle "foo" time])
+                 :snapshot)
+             {[entity ::i/live? true] [time 0]
+              [entity ::name "bob"]   [time 2]})))
+    (testing "invalid commit"
+      (is (thrown-with-msg?
+           clojure.lang.ExceptionInfo #"Invalid transition for state"
+           (i/commit (i/state) [:assert entity ::name "alice" time]))))))
 
 (deftest test-tick
   (testing "last tick recorded"

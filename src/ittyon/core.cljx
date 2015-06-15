@@ -211,13 +211,16 @@
 (defn commit
   "Takes a state and a transition, and if the transition is valid, returns
   a new state with the transition and any reactions applied. If the transition
-  is not valid for the state, the state is returned unchanged."
+  is not valid for the state, an ExceptionInfo is thrown with the failing
+  transition and state as keys."
   [state transition]
   (if (valid? state transition)
     (reduce commit
             (update state transition)
             (react state transition))
-    state))
+    (throw (ex-info "Invalid transition for state"
+                    {:state state
+                     :transition transition}))))
 
 (defn- tick-reactions [s t]
   (mapcat (fn [[[e a _] _]] (react s [:tick e a t])) (:snapshot s)))
@@ -232,7 +235,8 @@
 (defn transact
   "Takes a state and an ordered collection of transitions, and returns a new
   state with the transitions committed in order. Also adds a `:last-transact`
-  key to the resulting state that contains the committed transitions."
+  key to the resulting state that contains the committed transitions. If any
+  of the transitions fail, an ExceptionInfo is thrown."
   [state transitions]
   (-> (reduce commit state transitions)
       (assoc :last-transact transitions)))

@@ -45,7 +45,7 @@
 (defmethod receive! :transact [server socket [_ transitions]]
   (when (transact! server transitions)
     (when-let [ts (seq (remove local-transition? transitions))]
-      (broadcast! server socket `[:transact ~(vec ts)]))))
+      (broadcast! server socket [:transact (vec ts)]))))
 
 (defn tick!
   "Move the clock forward on the server."

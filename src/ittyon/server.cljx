@@ -13,7 +13,8 @@
   [init-state]
   {:state      (atom init-state)
    :sockets    (atom #{})
-   :ping-delay 10000})
+   :ping-delay 10000
+   :logger     println})
 
 (defn shutdown!
   "Shutdown the supplied server and atomically close all open sockets."
@@ -34,7 +35,7 @@
 (defmethod receive! :default [_ _ _] nil)
 
 (defmethod receive! :transact [server socket [_ transitions]]
-  (when (ic/log-exceptions #(swap! (:state server) i/transact transitions))
+  (when (ic/log-exceptions server #(swap! (:state server) i/transact transitions))
     (when-let [ts (seq (remove local-transition? transitions))]
       (broadcast! server socket [:transact (vec ts)]))))
 

@@ -16,11 +16,11 @@
 
 #+clj (defn- ex-message [ex] (.getMessage ex))
 
-(defn ^:no-doc log-exceptions [callback]
+(defn ^:no-doc log-exceptions [{:keys [logger]} f]
   (try
-    (callback)
+    (f)
     (catch #+clj clojure.lang.ExceptionInfo #+cljs cljs.core.ExceptionInfo ex
-      (println (str (ex-message ex) ": " (:transition (ex-data ex))))
+      (logger (str (ex-message ex) ": " (:transition (ex-data ex))))
       nil)))
 
 (defmulti ^:no-doc receive!
@@ -29,7 +29,7 @@
 (defmethod receive! :default [_ _] nil)
 
 (defmethod receive! :transact [client [_ transitions]]
-  (log-exceptions #(swap! (:state client) i/transact transitions)))
+  (log-exceptions client #(swap! (:state client) i/transact transitions)))
 
 (defmethod receive! :reset [client [_ facts]]
   (reset! (:state client) (i/state facts)))
@@ -71,7 +71,8 @@
   {:socket      socket
    :id          id
    :state       (atom (i/state reset))
-   :time-offset (atom (- (i/time) time))})
+   :time-offset (atom (- (i/time) time))
+   :logger      println})
 
 (defn connect!
   "Connect to a server via a bi-directional channel, and return a channel that

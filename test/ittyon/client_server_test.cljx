@@ -83,7 +83,13 @@
       (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
              1234567890)))
 
-    (testing "invalid transitions"
+    (testing "invalid transitions from client"
+      (let [invalid-entity (i/uuid)]
+        (is (thrown-with-msg?
+             clojure.lang.ExceptionInfo #"Invalid transition for state"
+             (client/transact! client [[:assert invalid-entity ::name "invalid"]])))))
+
+    (testing "invalid transitions from server"
       (let [invalid-entity (i/uuid)]
         (client/send! client [:transact [[:assert invalid-entity ::name "invalid"]]])
         (Thread/sleep 25)
@@ -135,6 +141,12 @@
           (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
                  1234567890)))
+
+        (testing "invalid transitions from client"
+          (let [invalid-entity (i/uuid)]
+            (is (thrown-with-msg?
+                 cljs.core.ExceptionInfo #"Invalid transition for state"
+                 (client/transact! client [[:assert invalid-entity ::name "invalid"]])))))
 
         (testing "invalid transitions"
           (let [invalid-entity (i/uuid)]

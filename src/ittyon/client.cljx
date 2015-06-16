@@ -14,13 +14,22 @@
 (defconduct i/-valid? [:assert ::connected?] [_ [_ _ _ v _]]
   (boolean? v))
 
+#+clj (defn- ex-message [ex] (.getMessage ex))
+
+(defn ^:no-doc log-exceptions [callback]
+  (try
+    (callback)
+    (catch #+clj clojure.lang.ExceptionInfo #+cljs cljs.core.ExceptionInfo ex
+      (println (str (ex-message ex) ": " (:transition (ex-data ex))))
+      nil)))
+
 (defmulti ^:no-doc receive!
   (fn [client event] (first event)))
 
 (defmethod receive! :default [_ _] nil)
 
 (defmethod receive! :transact [client [_ transitions]]
-  (swap! (:state client) i/transact transitions))
+  (log-exceptions #(swap! (:state client) i/transact transitions)))
 
 (defmethod receive! :reset [client [_ facts]]
   (reset! (:state client) (i/state facts)))
@@ -47,9 +56,8 @@
   [[core/transact]]."
   [client transitions]
   (let [trans (fill-transition-times transitions @(:time-offset client))]
-    (doto client
-      (receive! [:transact (vec trans)])
-      (send!    [:transact (vec (remove local-transition? trans))]))))
+    (swap! (:state client) i/transact trans)
+    (send! client [:transact (vec (remove local-transition? trans))])))
 
 (defn tick!
   "Move the clock forward on the client. This does not send anything to the

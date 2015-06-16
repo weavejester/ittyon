@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [medley "0.5.5"]
+                 [medley "0.6.0"]
                  [intentions "0.1.3"]
                  [cljs-uuid "0.0.4"]]
   :plugins [[lein-cljsbuild "1.0.5"]

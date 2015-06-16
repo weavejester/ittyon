@@ -81,20 +81,7 @@
       (client/transact! client [[:assert entity ::clock 1 1234567890]])
       (Thread/sleep 25)
       (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
-             1234567890)))
-
-    (testing "invalid transitions from client"
-      (let [invalid-entity (i/uuid)]
-        (is (thrown-with-msg?
-             clojure.lang.ExceptionInfo #"Invalid transition for state"
-             (client/transact! client [[:assert invalid-entity ::name "invalid"]])))))
-
-    (testing "invalid transitions from server"
-      (let [invalid-entity (i/uuid)]
-        (client/send! client [:transact [[:assert invalid-entity ::name "invalid"]]])
-        (Thread/sleep 25)
-        (let [facts (-> server :state deref :snapshot keys set)]
-          (is (not (contains? facts [invalid-entity ::name "invalid"]))))))))
+             1234567890)))))
 
 #+cljs
 (deftest ^:async test-async
@@ -141,19 +128,6 @@
           (<! (a/timeout 25))
           (is (= (-> client :state deref :snapshot (get [entity ::clock 1]) first)
                  1234567890)))
-
-        (testing "invalid transitions from client"
-          (let [invalid-entity (i/uuid)]
-            (is (thrown-with-msg?
-                 cljs.core.ExceptionInfo #"Invalid transition for state"
-                 (client/transact! client [[:assert invalid-entity ::name "invalid"]])))))
-
-        (testing "invalid transitions"
-          (let [invalid-entity (i/uuid)]
-            (client/send! client [:transact [[:assert invalid-entity ::name "invalid"]]])
-            (<! (a/timeout 25))
-            (let [facts (-> server :state deref :snapshot keys set)]
-              (is (not (contains? facts [invalid-entity ::name "invalid"]))))))
 
         (done))))
 
@@ -213,3 +187,39 @@
           (<! (a/timeout 50))
           (is (= (first (<! ch)) :time))
           (done)))))
+
+#+clj
+(deftest test-invalid
+  (let [[server client] (<!! (setup-server-client (i/state)))
+        dead-entity     (i/uuid)]
+
+    (testing "invalid transitions from client"
+      (is (thrown-with-msg?
+           clojure.lang.ExceptionInfo #"Invalid transition for state"
+           (client/transact! client [[:assert dead-entity ::name "invalid"]]))))
+
+    (testing "invalid transitions from server"
+      (let [invalid-entity (i/uuid)]
+        (client/send! client [:transact [[:assert dead-entity ::name "invalid"]]])
+        (Thread/sleep 25)
+        (let [facts (-> server :state deref :snapshot keys set)]
+          (is (not (contains? facts [dead-entity ::name "invalid"]))))))))
+
+#+cljs
+(deftest ^:async test-invalid
+  (go (let [[server client] (<! (setup-server-client init-state))
+            dead-entity     (i/uuid)]
+        (testing "invalid transitions from client"
+          (let [invalid-entity (i/uuid)]
+            (is (thrown-with-msg?
+                 cljs.core.ExceptionInfo #"Invalid transition for state"
+                 (client/transact! client [[:assert invalid-entity ::name "invalid"]])))))
+
+        (testing "invalid transitions"
+          (let [invalid-entity (i/uuid)]
+            (client/send! client [:transact [[:assert invalid-entity ::name "invalid"]]])
+            (<! (a/timeout 25))
+            (let [facts (-> server :state deref :snapshot keys set)]
+              (is (not (contains? facts [invalid-entity ::name "invalid"]))))))
+
+        (done))))

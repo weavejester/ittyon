@@ -1,33 +1,31 @@
 (ns ittyon.core
   "An in-memory immutable database designed to manage game state."
   (:refer-clojure :exclude [time derive update])
-  #+clj
-  (:require [clojure.core :as core]
-            [medley.core :refer [dissoc-in map-keys map-vals]]
-            [intentions.core :refer [defintent defconduct]])
-  #+cljs
-  (:require [cljs.core :as core]
-            [medley.core :refer [dissoc-in map-keys map-vals]]
-            [intentions.core :refer-macros [defintent defconduct]]
-            [cljs-uuid.core :as uuid]))
+  #?(:clj  (:require [clojure.core :as core]
+                     [medley.core :refer [dissoc-in map-keys map-vals]]
+                     [intentions.core :refer [defintent defconduct]])
+     :cljs (:require [cljs.core :as core]
+                     [medley.core :refer [dissoc-in map-keys map-vals]]
+                     [intentions.core :refer-macros [defintent defconduct]]
+                     [cljs-uuid.core :as uuid])))
 
 (defn time
   "Return the current system time in milliseconds."
   []
-  #+clj  (System/currentTimeMillis)
-  #+cljs (.getTime (js/Date.)))
+  #?(:clj  (System/currentTimeMillis)
+     :cljs (.getTime (js/Date.))))
 
 (defn uuid?
   "Return true if x is a UUID."
   [x]
-  #+clj  (instance? java.util.UUID x)
-  #+cljs (instance? cljs.core.UUID x))
+  #?(:clj  (instance? java.util.UUID x)
+     :cljs (instance? cljs.core.UUID x)))
 
 (defn uuid
   "Return a random UUID."
   []
-  #+clj  (java.util.UUID/randomUUID)
-  #+cljs (uuid/make-random))
+  #?(:clj  (java.util.UUID/randomUUID)
+     :cljs (uuid/make-random)))
 
 (defn periodically
   "Periodically evaluate a zero-argument function a specified number of times a
@@ -35,21 +33,23 @@
   [freq func]
   (let [ideal (/ 1000 freq)
         stop? (atom false)]
-    #+clj  (future
-             (loop []
-               (when-not @stop?
-                 (let [start (time)]
-                   (func)
-                   (let [duration (- (time) start)]
-                     (Thread/sleep (max 0 (- ideal duration)))
-                     (recur))))))
-    #+cljs (letfn [(callback []
-              (when-not @stop?
-                (let [start (time)]
-                  (func)
-                  (let [duration (- (time) start)]
-                    (js/setTimeout callback (max 0 (- ideal duration)))))))]
-             (callback))
+    #?(:clj
+       (future
+         (loop []
+           (when-not @stop?
+             (let [start (time)]
+               (func)
+               (let [duration (- (time) start)]
+                 (Thread/sleep (max 0 (- ideal duration)))
+                 (recur))))))
+       :cljs
+       (letfn [(callback []
+                 (when-not @stop?
+                   (let [start (time)]
+                     (func)
+                     (let [duration (- (time) start)]
+                       (js/setTimeout callback (max 0 (- ideal duration)))))))]
+         (callback)))
     #(reset! stop? true)))
 
 (defn derive

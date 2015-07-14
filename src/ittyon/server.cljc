@@ -1,9 +1,8 @@
 (ns ittyon.server
   "A server that keeps the state of its clients in sync with one another."
-  #+cljs
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  (:require #+clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
-            #+cljs [cljs.core.async :as a :refer [<! >!]]
+  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+  (:require #?(:clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
+               :cljs [cljs.core.async :as a :refer [<! >!]])
             [ittyon.core :as i]
             [ittyon.client :as ic]
             [medley.core :refer [deref-reset!]]))

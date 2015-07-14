@@ -1,9 +1,9 @@
 (ns ittyon.core-test
-  (:require #+clj  [clojure.test :refer :all]
-            #+cljs [cemerick.cljs.test :as t :refer-macros [is deftest testing done]]
-            [ittyon.core :as i]
-            #+clj  [intentions.core :refer [defconduct]]
-            #+cljs [intentions.core :refer-macros [defconduct]]))
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cemerick.cljs.test :as t :refer-macros [is deftest testing done]])
+            #?(:clj  [intentions.core :refer [defconduct]]
+               :cljs [intentions.core :refer-macros [defconduct]])
+            [ittyon.core :as i]))
 
 (deftest test-time
   (is (= (integer? (i/time)))))
@@ -18,23 +18,23 @@
              (derive ::a ::b)
              (derive ::a ::c)))))
 
-#+clj
-(deftest test-periodically
-  (let [counter (atom 0)
-        stop    (i/periodically 100 #(swap! counter inc))]
-    (Thread/sleep 30)
-    (is (>= @counter 2))
-    (stop)))
+#?(:clj
+   (deftest test-periodically
+     (let [counter (atom 0)
+           stop    (i/periodically 100 #(swap! counter inc))]
+       (Thread/sleep 30)
+       (is (>= @counter 2))
+       (stop)))
 
-#+cljs
-(deftest ^:async test-periodically
-  (let [counter (atom 0)
-        stop    (i/periodically 100 #(swap! counter inc))]
-    (js/setTimeout (fn []
-                     (is (>= @counter 2))
-                     (stop)
-                     (done))
-                   30)))
+   :cljs
+   (deftest ^:async test-periodically
+     (let [counter (atom 0)
+           stop    (i/periodically 100 #(swap! counter inc))]
+       (js/setTimeout (fn []
+                        (is (>= @counter 2))
+                        (stop)
+                        (done))
+                      30))))
 
 (derive ::a ::i/aspect)
 
@@ -121,7 +121,7 @@
               [entity ::name "bob"]   [time 2]})))
     (testing "invalid commit"
       (is (thrown-with-msg?
-           #+clj clojure.lang.ExceptionInfo #+cljs cljs.core.ExceptionInfo
+           #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo)
            #"Invalid transition for state"
            (i/commit (i/state) [:assert entity ::name "alice" time]))))))
 

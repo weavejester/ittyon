@@ -1,11 +1,10 @@
 (ns ittyon.client
   "A client that communicates with a server to mirror its state."
-  #+cljs
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  (:require #+clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
-            #+cljs [cljs.core.async :as a :refer [<! >!]]
-            #+clj  [intentions.core :refer [defconduct]]
-            #+cljs [intentions.core :refer-macros [defconduct]]
+  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+  (:require #?(:clj  [clojure.core.async :as a :refer [go go-loop <! >!]]
+               :cljs [cljs.core.async :as a :refer [<! >!]])
+            #?(:clj  [intentions.core :refer [defconduct]]
+               :cljs [intentions.core :refer-macros [defconduct]])
             [ittyon.core :as i]
             [medley.core :refer [boolean?]]))
 
@@ -14,12 +13,12 @@
 (defconduct i/-valid? [:assert ::connected?] [_ [_ _ _ v _]]
   (boolean? v))
 
-#+clj (defn- ex-message [ex] (.getMessage ex))
+#?(:clj (defn- ex-message [ex] (.getMessage ex)))
 
 (defn ^:no-doc log-exceptions [{:keys [logger]} f]
   (try
     (f)
-    (catch #+clj clojure.lang.ExceptionInfo #+cljs cljs.core.ExceptionInfo ex
+    (catch #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo) ex
       (logger (str (ex-message ex) ": " (:transition (ex-data ex))))
       nil)))
 

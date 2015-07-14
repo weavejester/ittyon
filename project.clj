@@ -1,4 +1,4 @@
-(defproject ittyon "0.8.1"
+(defproject ittyon "0.9.0"
   :description "Manage distributed state for games"
   :url "https://github.com/weavejester/ittyon"
   :license {:name "Eclipse Public License"
@@ -11,7 +11,7 @@
             [lein-cljsbuild "1.0.6"]
             [codox "0.8.13"]]
   :codox {:defaults {:doc/format :markdown}
-          :src-dir-uri "http://github.com/weavejester/ittyon/blob/0.8.1/"
+          :src-dir-uri "http://github.com/weavejester/ittyon/blob/0.9.0/"
           :src-linenum-anchor-prefix "L"}
   :cljsbuild
   {:builds

@@ -10,7 +10,9 @@
   :plugins [[com.cemerick/clojurescript.test "0.3.3"]
             [lein-cljsbuild "1.0.6"]
             [codox "0.8.13"]]
-  :codox {:defaults {:doc/format :markdown}}
+  :codox {:defaults {:doc/format :markdown}
+          :src-dir-uri "http://github.com/weavejester/ittyon/blob/0.8.1/"
+          :src-linenum-anchor-prefix "L"}
   :cljsbuild
   {:builds
    [{:source-paths ["src" "test"]

@@ -1,13 +1,12 @@
 (ns ittyon.core
   "An in-memory immutable database designed to manage game state."
-  (:refer-clojure :exclude [time derive update])
+  (:refer-clojure :exclude [time derive update uuid])
   #?(:clj  (:require [clojure.core :as core]
                      [medley.core :refer [dissoc-in map-keys map-vals]]
                      [intentions.core :refer [defintent defconduct]])
      :cljs (:require [cljs.core :as core]
                      [medley.core :refer [dissoc-in map-keys map-vals]]
-                     [intentions.core :refer-macros [defintent defconduct]]
-                     [cljs-uuid.core :as uuid])))
+                     [intentions.core :refer-macros [defintent defconduct]])))
 
 (defn time
   "Return the current system time in milliseconds."
@@ -25,7 +24,7 @@
   "Return a random UUID."
   []
   #?(:clj  (java.util.UUID/randomUUID)
-     :cljs (uuid/make-random)))
+     :cljs (random-uuid)))
 
 (defn periodically
   "Periodically evaluate a zero-argument function a specified number of times a

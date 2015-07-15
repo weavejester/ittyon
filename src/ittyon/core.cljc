@@ -99,14 +99,14 @@
   "Update the state's indexes for a single transition. Extend using the
   [[-index]] intention."
   [state transition]
-  (update-in state [:index] (-index state transition)))
+  (core/update state :index (-index state transition)))
 
 (defn update-snapshot
   "Update the state's snapshot for a single transition."
   [{n :count :as state} [o e a v t]]
   (case o
-    :assert (update-in state [:snapshot] assoc [e a v] [t n])
-    :revoke (update-in state [:snapshot] dissoc [e a v])))
+    :assert (core/update state :snapshot assoc [e a v] [t n])
+    :revoke (core/update state :snapshot dissoc [e a v])))
 
 (defn update
   "Update a state with a single transition and return the new state. Combines
@@ -115,7 +115,7 @@
   (-> state
       (update-snapshot transition)
       (index transition)
-      (update-in [:count] inc)))
+      (core/update :count inc)))
 
 (defn state
   "Return a new state, either empty or prepopulated with a collection of facts."

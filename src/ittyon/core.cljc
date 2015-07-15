@@ -114,13 +114,21 @@
   [state transition]
   (-> state
       (update-snapshot transition)
-      (index transition)
-      (core/update :count inc)))
+      (core/update :log conj transition)
+      (core/update :count inc)
+      (index transition)))
+
+(defn prune
+  "Reset the log of a state back to an empty list."
+  [state]
+  (assoc state :log ()))
 
 (defn state
   "Return a new state, either empty or prepopulated with a collection of facts."
-  ([]      {:snapshot {}, :index {}, :count 0})
-  ([facts] (reduce update (state) (for [[e a v t] facts] [:assert e a v t]))))
+  ([]
+   {:snapshot {}, :log (), :index {}, :count 0})
+  ([facts]
+   (reduce update (state) (for [[e a v t] facts] [:assert e a v t]))))
 
 (defn facts
   "Return an ordered collection of facts held by the supplied state."
@@ -237,5 +245,5 @@
   key to the resulting state that contains the committed transitions. If any
   of the transitions fail, an ExceptionInfo is thrown."
   [state transitions]
-  (-> (reduce commit state transitions)
+  (-> (reduce commit (prune state) transitions)
       (assoc :last-transact transitions)))

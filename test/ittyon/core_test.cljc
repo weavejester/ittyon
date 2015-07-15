@@ -40,6 +40,7 @@
 
 (def eavt-state
   {:snapshot {[:e ::a :v] [:t 0]}
+   :log '([:assert :e ::a :v :t])
    :count 1
    :index {:eavt {:e {::a {:v :t}}}
            :aevt {::a {:e {:v :t}}}
@@ -47,7 +48,7 @@
 
 (deftest test-state
   (testing "empty"
-    (is (= (i/state) {:snapshot {}, :index {}, :count 0})))
+    (is (= (i/state) {:snapshot {}, :log (), :index {}, :count 0})))
   (testing "not empty"
     (is (= (i/state #{[:e ::a :v :t]}) eavt-state))))
 
@@ -56,7 +57,10 @@
     (is (= (i/update (i/state) [:assert :e ::a :v :t]) eavt-state)))
   (testing "revoke"
     (is (= (i/update eavt-state [:revoke :e ::a :v :t])
-           (assoc (i/state) :count 2)))))
+           {:snapshot {}
+            :log '([:revoke :e ::a :v :t] [:assert :e ::a :v :t])
+            :index {}
+            :count 2}))))
 
 (deftest test-facts
   (is (= (i/facts eavt-state)
@@ -110,15 +114,23 @@
         time   (i/time)]
     (i/derive ::name ::i/aspect ::i/singular)
     (testing "valid commit"
-      (is (= (-> (i/state)
-                 (i/commit [:assert entity ::i/live? true time])
-                 (i/commit [:assert entity ::name "alice" time])
-                 (i/commit [:assert entity ::name "bob" time])
-                 (i/commit [:assert entity ::toggle "foo" time])
-                 (i/commit [:assert entity ::toggle "foo" time])
-                 :snapshot)
-             {[entity ::i/live? true] [time 0]
-              [entity ::name "bob"]   [time 2]})))
+      (let [state (-> (i/state)
+                      (i/commit [:assert entity ::i/live? true time])
+                      (i/commit [:assert entity ::name "alice" time])
+                      (i/commit [:assert entity ::name "bob" time])
+                      (i/commit [:assert entity ::toggle "foo" time])
+                      (i/commit [:assert entity ::toggle "foo" time]))]
+        (is (= (:snapshot state)
+               {[entity ::i/live? true] [time 0]
+                [entity ::name "bob"]   [time 2]}))
+        (is (= (:log state)
+               (list [:revoke entity ::toggle "foo" time]
+                     [:assert entity ::toggle "foo" time]
+                     [:assert entity ::toggle "foo" time]
+                     [:revoke entity ::name "alice" time]
+                     [:assert entity ::name "bob" time]
+                     [:assert entity ::name "alice" time]
+                     [:assert entity ::i/live? true time])))))
     (testing "invalid commit"
       (is (thrown-with-msg?
            #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo)
@@ -153,8 +165,14 @@
         time   (i/time)
         trans  [[:assert entity ::i/live? true time]
                 [:assert entity ::name "alice" time]]
-        state  (i/transact (i/state) trans)]
+        state  (i/transact (i/state) trans)
+        state' (i/transact state [[:assert entity ::name "bob" time]])]
     (is (= (:snapshot state)
            {[entity ::i/live? true] [time 0]
             [entity ::name "alice"] [time 1]}))
-    (is (= (:last-transact state) trans))))
+    (is (= (:last-transact state) trans))
+    (is (= (:log state) (reverse trans)))
+    (is (= (:last-transact state') [[:assert entity ::name "bob" time]]))
+    (is (= (:log state')
+           (list [:revoke entity ::name "alice" time]
+                 [:assert entity ::name "bob" time])))))

@@ -226,17 +226,16 @@
   is not valid for the state, an ExceptionInfo is thrown with the failing
   transition and state as keys."
   ([state transition]
-   (commit state transition false))
-  ([state transition pure?]
-   (if (and pure? (impure? transition))
-     state
-     (if (valid? state transition)
-       (reduce #(commit %1 %2 pure?)
-               (update state transition)
-               (react state transition))
-       (throw (ex-info "Invalid transition for state"
-                       {:state state
-                        :transition transition}))))))
+   (commit state transition identity))
+  ([state transition xform]
+   (if (valid? state transition)
+     (transduce xform
+                (completing #(commit %1 %2 xform))
+                (update state transition)
+                (react state transition))
+     (throw (ex-info "Invalid transition for state"
+                     {:state state
+                      :transition transition})))))
 
 (defn- tick-reactions [s t]
   (mapcat (fn [[[e a _] _]] (react s [:tick e a t])) (:snapshot s)))
@@ -254,7 +253,7 @@
   key to the resulting state that contains the committed transitions. If any
   of the transitions fail, an ExceptionInfo is thrown."
   ([state transitions]
-   (transact state transitions false))
-  ([state transitions pure?]
-   (-> (reduce #(commit %1 %2 pure?) (prune state) transitions)
+   (transact state transitions identity))
+  ([state transitions xform]
+   (-> (reduce #(commit %1 %2 xform) (prune state) transitions)
        (assoc :last-transact transitions))))

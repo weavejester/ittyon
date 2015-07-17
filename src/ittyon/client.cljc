@@ -55,7 +55,7 @@
   [[core/transact]]."
   [client transitions]
   (let [trans (fill-transition-times transitions @(:time-offset client))]
-    (swap! (:state client) i/transact trans true)
+    (swap! (:state client) i/transact trans (remove i/impure?))
     (send! client [:transact (vec (remove local-transition? trans))])))
 
 (defn tick!

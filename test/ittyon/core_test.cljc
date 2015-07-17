@@ -109,10 +109,18 @@
         (is (= (i/react (i/update state transition) transition)
                [[:revoke entity ::toggle "foo" time]]))))))
 
+(i/derive ::dice ::i/aspect ::i/singular)
+(i/derive ::roll ::i/aspect ::i/singular)
+
+(defconduct i/-react [:assert ::dice] [s [_ e a v t]]
+  [[:revoke e a v t]
+   ^:impure [:assert e ::roll (rand-int v) t]])
+
 (deftest test-commit
   (let [entity (i/uuid)
         time   (i/time)]
     (i/derive ::name ::i/aspect ::i/singular)
+
     (testing "valid commit"
       (let [state (-> (i/state)
                       (i/commit [:assert entity ::i/live? true time])
@@ -131,14 +139,19 @@
                      [:assert entity ::name "bob" time]
                      [:assert entity ::name "alice" time]
                      [:assert entity ::i/live? true time])))))
+
     (testing "invalid commit"
       (is (thrown-with-msg?
            #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo)
            #"Invalid transition for state"
            (i/commit (i/state) [:assert entity ::name "alice" time]))))
-    (testing "impure commit"
-      (is (= (i/commit (i/state) ^:impure [:assert entity ::i/live? true time] true)
-             (i/state))))))
+
+    (testing "commit with reaction transducer"
+      (let [trans [:assert entity ::dice 1000 time]
+            state (i/commit (i/state) [:assert entity ::i/live? true time])]
+        (is (not= (:snapshot (i/commit state trans)) (:snapshot state)))
+        (is (= (:snapshot (i/commit state trans (remove i/impure?)))
+               (:snapshot state)))))))
 
 (deftest test-tick
   (testing "last tick recorded"

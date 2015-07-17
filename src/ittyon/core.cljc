@@ -215,19 +215,28 @@
   [state transition]
   (seq (-react state transition)))
 
+(defn impure?
+  "Return true if the transition is tagged as :impure."
+  [transition]
+  (:impure (meta transition)))
+
 (defn commit
   "Takes a state and a transition, and if the transition is valid, returns
   a new state with the transition and any reactions applied. If the transition
   is not valid for the state, an ExceptionInfo is thrown with the failing
   transition and state as keys."
-  [state transition]
-  (if (valid? state transition)
-    (reduce commit
-            (update state transition)
-            (react state transition))
-    (throw (ex-info "Invalid transition for state"
-                    {:state state
-                     :transition transition}))))
+  ([state transition]
+   (commit state transition false))
+  ([state transition pure?]
+   (if (and pure? (impure? transition))
+     state
+     (if (valid? state transition)
+       (reduce #(commit %1 %2 pure?)
+               (update state transition)
+               (react state transition))
+       (throw (ex-info "Invalid transition for state"
+                       {:state state
+                        :transition transition}))))))
 
 (defn- tick-reactions [s t]
   (mapcat (fn [[[e a _] _]] (react s [:tick e a t])) (:snapshot s)))
@@ -244,6 +253,8 @@
   state with the transitions committed in order. Also adds a `:last-transact`
   key to the resulting state that contains the committed transitions. If any
   of the transitions fail, an ExceptionInfo is thrown."
-  [state transitions]
-  (-> (reduce commit (prune state) transitions)
-      (assoc :last-transact transitions)))
+  ([state transitions]
+   (transact state transitions false))
+  ([state transitions pure?]
+   (-> (reduce #(commit %1 %2 pure?) (prune state) transitions)
+       (assoc :last-transact transitions))))

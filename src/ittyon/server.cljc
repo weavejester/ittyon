@@ -25,6 +25,9 @@
   (doseq [sock @(:sockets server) :when (not= sock socket)]
     (a/put! sock message)))
 
+(defn- transact! [server transitions]
+  (ic/log-exceptions server #(swap! (:state server) i/transact transitions)))
+
 (defn- local-transition? [[_ _ a _ _]]
   (isa? a ::local))
 
@@ -34,9 +37,13 @@
 (defmethod receive! :default [_ _ _] nil)
 
 (defmethod receive! :transact [server socket [_ transitions]]
-  (when (ic/log-exceptions server #(swap! (:state server) i/transact transitions))
-    (when-let [ts (seq (remove local-transition? transitions))]
-      (broadcast! server socket [:transact (vec ts)]))))
+  (when-let [state (transact! server transitions)]
+    (let [remote (remove local-transition? transitions)
+          impure (filter i/impure? (:log state))]
+      (when (seq impure)
+        (a/put! socket [:transact (vec impure)]))
+      (when-let [trans (seq (concat remote impure))]
+        (broadcast! server socket [:transact (vec trans)])))))
 
 (defn tick!
   "Move the clock forward on the server."

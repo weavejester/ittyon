@@ -135,7 +135,10 @@
       (is (thrown-with-msg?
            #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo)
            #"Invalid transition for state"
-           (i/commit (i/state) [:assert entity ::name "alice" time]))))))
+           (i/commit (i/state) [:assert entity ::name "alice" time]))))
+    (testing "impure commit"
+      (is (= (i/commit (i/state) ^:impure [:assert entity ::i/live? true time] true)
+             (i/state))))))
 
 (deftest test-tick
   (testing "last tick recorded"

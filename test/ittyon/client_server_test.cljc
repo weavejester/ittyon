@@ -224,3 +224,43 @@
                  (is (not (contains? facts [invalid-entity ::name "invalid"]))))))
 
            (done)))))
+
+(i/derive ::dice ::i/aspect ::i/singular)
+(i/derive ::roll ::i/aspect ::i/singular)
+
+(defconduct i/-react [:assert ::dice] [s [_ e a v t]]
+  [^:impure [:assert e ::roll (rand-int v) t]])
+
+(defn- get-value [s e a]
+  (-> s (get-in [:index :eavt e a]) keys first))
+
+#?(:clj
+   (deftest test-impure
+     (let [server  (server/server init-state)
+           client1 (<!! (connect-client! server))
+           client2 (<!! (connect-client! server))
+           entity  (i/uuid)]
+       (client/transact! client1 [[:assert entity ::i/live? true]
+                                  [:assert entity ::dice 1000]])
+       (Thread/sleep 100)
+       (is (integer? (-> server :state deref (get-value entity ::roll))))
+       (is (not= 1000 (-> server :state deref (get-value entity ::roll))))
+       (is (= (-> server :state deref (get-value entity ::roll))
+              (-> client1 :state deref (get-value entity ::roll))
+              (-> client2 :state deref (get-value entity ::roll))))))
+
+   :cljs
+   (deftest ^:async test-impure
+     (go (let [server  (server/server init-state)
+               client1 (<! (connect-client! server))
+               client2 (<! (connect-client! server))
+               entity  (i/uuid)]
+           (client/transact! client1 [[:assert entity ::i/live? true]
+                                      [:assert entity ::dice 1000]])
+           (<! (a/timeout 25))
+           (is (integer? (-> server :state deref (get-value entity ::roll))))
+           (is (not= 1000 (-> server :state deref (get-value entity ::roll))))
+           (is (= (-> server :state deref (get-value entity ::roll))
+                  (-> client1 :state deref (get-value entity ::roll))
+                  (-> client2 :state deref (get-value entity ::roll))))
+           (done)))))

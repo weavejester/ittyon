@@ -27,17 +27,17 @@
             [entity ::clock 0 (i/time)]
             [entity ::hidden? false (i/time)]]))
 
-(defn setup-server-client [state]
-  (let [server  (server/server state)
-        a-ch    (a/chan)
-        b-ch    (a/chan)
-        client  (client/connect! (bidi-ch a-ch b-ch))]
+(defn connect-client! [server]
+  (let [a-ch   (a/chan)
+        b-ch   (a/chan)
+        client (client/connect! (bidi-ch a-ch b-ch))]
     (server/accept! server (bidi-ch b-ch a-ch))
-    (go [server (<! client)])))
+    client))
 
 #?(:clj
    (deftest test-async
-     (let [[server client] (<!! (setup-server-client init-state))]
+     (let [server (server/server init-state)
+           client (<!! (connect-client! server))]
 
        (testing "identity of client"
          (i/uuid? (:id client)))
@@ -83,7 +83,8 @@
 
    :cljs
    (deftest ^:async test-async
-     (go (let [[server client] (<! (setup-server-client init-state))]
+     (go (let [server (server/server init-state)
+               client (<! (connect-client! server))]
 
            (testing "identity of client"
              (i/uuid? (:id client)))
@@ -188,8 +189,9 @@
 
 #?(:clj
    (deftest test-invalid
-     (let [[server client] (<!! (setup-server-client (i/state)))
-           dead-entity     (i/uuid)]
+     (let [server      (server/server init-state)
+           client      (<!! (connect-client! server))
+           dead-entity (i/uuid)]
 
        (testing "invalid transitions from client"
          (is (thrown-with-msg?
@@ -205,8 +207,9 @@
 
    :cljs
    (deftest ^:async test-invalid
-     (go (let [[server client] (<! (setup-server-client init-state))
-               dead-entity     (i/uuid)]
+     (go (let [server      (server/server init-state)
+               client      (<! (connect-client! server))
+               dead-entity (i/uuid)]
            (testing "invalid transitions from client"
              (let [invalid-entity (i/uuid)]
                (is (thrown-with-msg?

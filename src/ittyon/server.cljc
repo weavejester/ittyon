@@ -39,7 +39,7 @@
 (defmethod receive! :transact [server socket [_ transitions]]
   (when-let [state (transact! server transitions)]
     (let [remote (remove local-transition? transitions)
-          impure (filter i/impure? (:log state))]
+          impure (filter (comp :impure meta) (:log state))]
       (when (seq impure)
         (a/put! socket [:transact (vec impure)]))
       (when-let [trans (seq (concat remote impure))]

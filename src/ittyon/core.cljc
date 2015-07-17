@@ -215,11 +215,6 @@
   [state transition]
   (seq (-react state transition)))
 
-(defn impure?
-  "Return true if the transition is tagged as :impure."
-  [transition]
-  (:impure (meta transition)))
-
 (defn commit
   "Takes a state and a transition, and if the transition is valid, returns
   a new state with the transition and any reactions applied. If the transition

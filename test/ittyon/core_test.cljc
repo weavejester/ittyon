@@ -150,7 +150,7 @@
       (let [trans [:assert entity ::dice 1000 time]
             state (i/commit (i/state) [:assert entity ::i/live? true time])]
         (is (not= (:snapshot (i/commit state trans)) (:snapshot state)))
-        (is (= (:snapshot (i/commit state trans (remove i/impure?)))
+        (is (= (:snapshot (i/commit state trans (remove (comp :impure meta))))
                (:snapshot state)))))))
 
 (deftest test-tick

@@ -28,9 +28,6 @@
 (defn- transact! [server transitions]
   (ic/log-exceptions server #(swap! (:state server) i/transact transitions)))
 
-(defn- local-transition? [[_ _ a _ _]]
-  (isa? a ::local))
-
 (defmulti ^:no-doc receive!
   (fn [server socket event] (first event)))
 
@@ -38,11 +35,10 @@
 
 (defmethod receive! :transact [server socket [_ transitions]]
   (when-let [state (transact! server transitions)]
-    (let [remote (remove local-transition? transitions)
-          impure (filter (comp :impure meta) (:log state))]
+    (let [impure (filter (comp :impure meta) (:log state))]
       (when (seq impure)
         (a/put! socket [:transact (vec impure)]))
-      (when-let [trans (seq (concat remote impure))]
+      (when-let [trans (seq (concat transitions impure))]
         (broadcast! server socket [:transact (vec trans)])))))
 
 (defn tick!

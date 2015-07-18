@@ -65,8 +65,6 @@
 (derive ::aspect  ::indexed)
 (derive ::live?   ::indexed)
 
-(derive ::local :ittyon.client/local :ittyon.server/local)
-
 (defintent -index
   "An intention to update the supplied index with a transition. Expected to
   return a function that updates the index. Dispatches off the transition op

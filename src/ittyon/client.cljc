@@ -36,16 +36,13 @@
 (defmethod receive! :time [client [_ time]]
   (reset! (:time-offset client) (- (i/time) time)))
 
-(defn- local-transition? [[_ _ a _ _]]
-  (isa? a ::local))
-
 (defn ^:no-doc send! [client message]
   (a/put! (:socket client) message))
 
 (defn- fill-transition-times [transitions offset]
   (let [time (i/time)]
-    (for [[o e a v t] transitions]
-      [o e a v (+ (or t time) offset)])))
+    (for [[o e a v t :as tr] transitions]
+      (with-meta [o e a v (+ (or t time) offset)] (meta tr)))))
 
 (defn transact!
   "Atomically update the client with an ordered collection of transitions, then
@@ -56,7 +53,7 @@
   [client transitions]
   (let [trans (fill-transition-times transitions @(:time-offset client))]
     (swap! (:state client) i/transact trans (remove (comp :impure meta)))
-    (send! client [:transact (vec (remove local-transition? trans))])))
+    (send! client [:transact (vec (remove (comp :local meta) trans))])))
 
 (defn tick!
   "Move the clock forward on the client. This does not send anything to the

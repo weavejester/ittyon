@@ -15,8 +15,7 @@
 (i/derive ::name      ::i/aspect ::i/singular)
 (i/derive ::email     ::i/aspect ::i/singular)
 (i/derive ::clock     ::i/aspect ::i/singular)
-(i/derive ::selected? ::i/aspect ::i/singular ::client/local)
-(i/derive ::hidden?   ::i/aspect ::i/singular ::server/local)
+(i/derive ::selected? ::i/aspect ::i/singular)
 
 (def entity (i/uuid))
 
@@ -24,8 +23,7 @@
   (i/state [[entity ::i/live? true (i/time)]
             [entity ::name "alice" (i/time)]
             [entity ::email "alice@example.com" (i/time)]
-            [entity ::clock 0 (i/time)]
-            [entity ::hidden? false (i/time)]]))
+            [entity ::clock 0 (i/time)]]))
 
 (defn connect-client! [server]
   (let [a-ch   (a/chan)
@@ -44,8 +42,7 @@
        
        (testing "initial state transferred to client"
          (is (= (-> client :state deref :snapshot keys set)
-                (-> server :state deref :snapshot keys set
-                    (disj [entity ::hidden? false])))))
+                (-> server :state deref :snapshot keys set))))
 
        (testing "connected client stored in state"
          (let [facts (-> server :state deref :snapshot keys set)]
@@ -57,8 +54,7 @@
                                    [:assert entity ::email "bob@example.com"]])
          (Thread/sleep 25)
          (is (= (-> client :state deref :snapshot keys set)
-                (-> server :state deref :snapshot keys set
-                    (disj [entity ::hidden? false]))
+                (-> server :state deref :snapshot keys set)
                 #{[(:id client) ::i/live? true]
                   [(:id client) ::client/connected? true]
                   [entity ::i/live? true]
@@ -67,7 +63,7 @@
                   [entity ::clock 0]})))
 
        (testing "local events not relayed to server"
-         (client/transact! client [[:assert entity ::selected? true]])
+         (client/transact! client [^:local [:assert entity ::selected? true]])
          (Thread/sleep 25)
          (is (= (set/difference
                  (-> client :state deref :snapshot keys set)
@@ -91,8 +87,7 @@
 
            (testing "initial state transferred to client"
              (is (= (-> client :state deref :snapshot keys set)
-                    (-> server :state deref :snapshot keys set
-                        (disj [entity ::hidden? false])))))
+                    (-> server :state deref :snapshot keys set))))
 
            (testing "connected client stored in state"
              (let [facts (-> server :state deref :snapshot keys set)]
@@ -104,8 +99,7 @@
                                        [:assert entity ::email "bob@example.com"]])
              (<! (a/timeout 25))
              (is (= (-> client :state deref :snapshot keys set)
-                    (-> server :state deref :snapshot keys set
-                        (disj [entity ::hidden? false]))
+                    (-> server :state deref :snapshot keys set)
                     #{[(:id client) ::i/live? true]
                       [(:id client) ::client/connected? true]
                       [entity ::i/live? true]
@@ -114,7 +108,11 @@
                       [entity ::clock 0]})))
 
            (testing "local events not relayed to server"
-             (client/transact! client [[:assert entity ::selected? true]])
+             ;; go loops in cljs.core.async erroneously eat bare metadata.
+             ;; Until this bug is fixed, we need to use with-meta instead.
+             (client/transact! client [(with-meta
+                                         [:assert entity ::selected? true]
+                                         {:local true})])
              (<! (a/timeout 25))
              (is (= (set/difference
                      (-> client :state deref :snapshot keys set)

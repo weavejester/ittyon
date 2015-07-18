@@ -47,9 +47,10 @@
 (defn transact!
   "Atomically update the client with an ordered collection of transitions, then
   relay them to the server. Times may be omitted from the transitions, in which
-  case the current time will be used. Transitions with aspects deriving from
-  `:ittyon.client/local` are not relayed to the server. See also:
-  [[core/transact]]."
+  case the current time will be used. Transitions tagged as `:local` will not
+  be sent to the server. Reaction transitions tagged as `:impure` will not be
+  applied directly by clients, but will be relayed from the server in order to
+  get a canonical value. See also: [[core/transact]]."
   [client transitions]
   (let [trans (fill-transition-times transitions @(:time-offset client))]
     (swap! (:state client) i/transact trans (remove (comp :impure meta)))

@@ -217,7 +217,8 @@
   "Takes a state and a transition, and if the transition is valid, returns
   a new state with the transition and any reactions applied. If the transition
   is not valid for the state, an ExceptionInfo is thrown with the failing
-  transition and state as keys."
+  transition and state as keys. A transducer for transforming the reactions
+  of the transition may be supplied as an optional third argument."
   ([state transition]
    (commit state transition identity))
   ([state transition xform]
@@ -244,7 +245,9 @@
   "Takes a state and an ordered collection of transitions, and returns a new
   state with the transitions committed in order. Also adds a `:last-transact`
   key to the resulting state that contains the committed transitions. If any
-  of the transitions fail, an ExceptionInfo is thrown."
+  of the transitions fail, an ExceptionInfo is thrown. A transducer for
+  transforming the reactions of each transition may be supplied as an optional
+  third argument."
   ([state transitions]
    (transact state transitions identity))
   ([state transitions xform]

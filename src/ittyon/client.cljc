@@ -41,8 +41,8 @@
 
 (defn- fill-transition-times [transitions offset]
   (let [time (i/time)]
-    (for [[o e a v t :as tr] transitions]
-      (with-meta [o e a v (+ (or t time) offset)] (meta tr)))))
+    (for [tr transitions]
+      (update tr 4 (fn [t] (+ (or t time) offset))))))
 
 (defn transact!
   "Atomically update the client with an ordered collection of transitions, then

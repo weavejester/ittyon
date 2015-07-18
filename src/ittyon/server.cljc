@@ -35,7 +35,7 @@
 
 (defmethod receive! :transact [server socket [_ transitions]]
   (when-let [state (transact! server transitions)]
-    (let [impure (filter (comp :impure meta) (:log state))]
+    (let [impure (filter (comp :impure meta) (reverse (:log state)))]
       (when (seq impure)
         (a/put! socket [:transact (vec impure)]))
       (when-let [trans (seq (concat transitions impure))]

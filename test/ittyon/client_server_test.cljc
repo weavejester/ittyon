@@ -223,14 +223,19 @@
 
            (done)))))
 
-(i/derive ::dice ::i/aspect ::i/singular)
-(i/derive ::roll ::i/aspect ::i/singular)
+(i/derive ::hire ::i/aspect ::i/singular)
+(i/derive ::employee ::i/aspect ::i/singular ::i/ref)
 
-(defconduct i/-react [:assert ::dice] [s [_ e a v t]]
-  [^:impure [:assert e ::roll (rand-int v) t]])
+(defconduct i/-react [:assert ::hire] [s [_ e a v t]]
+  (let [e' (i/uuid)]
+    [^:impure [:assert e' ::i/live? true t]
+     ^:impure [:assert e' ::name v t]
+     ^:impure [:assert e ::employee e' t]]))
 
-(defn- get-value [s e a]
-  (-> s (get-in [:index :eavt e a]) keys first))
+(defn- get-employee [s e]
+  (let [id   (-> s (get-in [:index :eavt e ::employee]) keys first)
+        name (-> s (get-in [:index :eavt id ::name]) keys first)]
+    {:id id, :name name}))
 
 #?(:clj
    (deftest test-impure
@@ -239,13 +244,14 @@
            client2 (<!! (connect-client! server))
            entity  (i/uuid)]
        (client/transact! client1 [[:assert entity ::i/live? true]
-                                  [:assert entity ::dice 1000]])
-       (Thread/sleep 100)
-       (is (integer? (-> server :state deref (get-value entity ::roll))))
-       (is (not= 1000 (-> server :state deref (get-value entity ::roll))))
-       (is (= (-> server :state deref (get-value entity ::roll))
-              (-> client1 :state deref (get-value entity ::roll))
-              (-> client2 :state deref (get-value entity ::roll))))))
+                                  [:assert entity ::hire "bob"]])
+       (Thread/sleep 25)
+       (let [employee (-> server :state deref (get-employee entity))]
+         (is (i/uuid? (:id employee)))
+         (is (= (:name employee) "bob")))
+       (is (= (-> server :state deref (get-employee entity))
+              (-> client1 :state deref (get-employee entity))
+              (-> client2 :state deref (get-employee entity))))))
 
    :cljs
    (deftest ^:async test-impure
@@ -254,11 +260,12 @@
                client2 (<! (connect-client! server))
                entity  (i/uuid)]
            (client/transact! client1 [[:assert entity ::i/live? true]
-                                      [:assert entity ::dice 1000]])
+                                      [:assert entity ::hire "bob"]])
            (<! (a/timeout 25))
-           (is (integer? (-> server :state deref (get-value entity ::roll))))
-           (is (not= 1000 (-> server :state deref (get-value entity ::roll))))
-           (is (= (-> server :state deref (get-value entity ::roll))
-                  (-> client1 :state deref (get-value entity ::roll))
-                  (-> client2 :state deref (get-value entity ::roll))))
+           (let [employee (-> server :state deref (get-employee entity))]
+             (is (i/uuid? (:id employee)))
+             (is (= (:name employee) "bob")))
+           (is (= (-> server :state deref (get-employee entity))
+                  (-> client1 :state deref (get-employee entity))
+                  (-> client2 :state deref (get-employee entity))))
            (done)))))

@@ -53,13 +53,10 @@
 (defn- disconnect-event [client-id]
   [:transact [[:revoke client-id ::i/live? true (i/time)]]])
 
-(defn- local-fact? [[_ a _ _]]
-  (isa? a ::local))
-
 (defn- handshake-event [client-id init-state]
   [:init {:id    client-id
           :time  (i/time)
-          :reset (remove local-fact? (i/facts init-state))}])
+          :reset (i/facts init-state)}])
 
 (defn accept!
   "Accept a new connection in the form of a bi-directional core.async channel.

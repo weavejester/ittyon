@@ -28,7 +28,8 @@
 (defmethod receive! :default [_ _] nil)
 
 (defmethod receive! :transact [client [_ transitions]]
-  (log-exceptions client #(swap! (:state client) i/transact transitions)))
+  (log-exceptions client
+    #(swap! (:state client) i/transact transitions (remove (comp :impure meta)))))
 
 (defmethod receive! :reset [client [_ facts]]
   (reset! (:state client) (i/state facts)))

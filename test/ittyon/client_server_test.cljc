@@ -249,9 +249,9 @@
        (let [employee (-> server :state deref (get-employee entity))]
          (is (i/uuid? (:id employee)))
          (is (= (:name employee) "bob")))
-       (is (= (-> server :state deref (get-employee entity))
-              (-> client1 :state deref (get-employee entity))
-              (-> client2 :state deref (get-employee entity))))))
+       (is (= (-> server  :state deref :snapshot keys set)
+              (-> client1 :state deref :snapshot keys set)
+              (-> client2 :state deref :snapshot keys set)))))
 
    :cljs
    (deftest ^:async test-impure
@@ -265,7 +265,7 @@
            (let [employee (-> server :state deref (get-employee entity))]
              (is (i/uuid? (:id employee)))
              (is (= (:name employee) "bob")))
-           (is (= (-> server :state deref (get-employee entity))
-                  (-> client1 :state deref (get-employee entity))
-                  (-> client2 :state deref (get-employee entity))))
+           (is (= (-> server  :state deref :snapshot keys set)
+                  (-> client1 :state deref :snapshot keys set)
+                  (-> client2 :state deref :snapshot keys set)))
            (done)))))

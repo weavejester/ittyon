@@ -21,7 +21,7 @@ has a lot in common with [Datomic][2].
 Add the following to your project dependencies:
 
 ```clojure
-[ittyon "0.10.2"]
+[ittyon "0.10.3"]
 ```
 
 ## Overview

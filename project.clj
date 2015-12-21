@@ -9,10 +9,11 @@
                  [intentions "0.2.0"]]
   :plugins [[lein-cljsbuild "1.1.2"]
             [lein-doo "0.1.6"]
-            [codox "0.8.13"]]
-  :codox {:defaults {:doc/format :markdown}
-          :src-dir-uri "http://github.com/weavejester/ittyon/blob/0.10.2/"
-          :src-linenum-anchor-prefix "L"}
+            [lein-codox "0.9.1"]]
+  :codox
+  {:metadata {:doc/format :markdown}
+   :source-uri "https://github.com/weavejester/ittyon/blob/{version}/{filepath}#{line}"
+   :output-path "doc"}
   :cljsbuild
   {:builds
    [{:id "test"

@@ -1,6 +1,6 @@
 (ns ittyon.core-test
   (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cemerick.cljs.test :as t :refer-macros [is deftest testing done]])
+               :cljs [cljs.test :as t :refer-macros [is deftest testing async]])
             #?(:clj  [intentions.core :refer [defconduct]]
                :cljs [intentions.core :refer-macros [defconduct]])
             [ittyon.core :as i]))
@@ -18,23 +18,23 @@
              (derive ::a ::b)
              (derive ::a ::c)))))
 
-#?(:clj
-   (deftest test-periodically
+(deftest test-periodically
+  #?(:clj
      (let [counter (atom 0)
            stop    (i/periodically 100 #(swap! counter inc))]
        (Thread/sleep 30)
        (is (>= @counter 2))
-       (stop)))
+       (stop))
 
-   :cljs
-   (deftest ^:async test-periodically
-     (let [counter (atom 0)
-           stop    (i/periodically 100 #(swap! counter inc))]
-       (js/setTimeout (fn []
-                        (is (>= @counter 2))
-                        (stop)
-                        (done))
-                      30))))
+     :cljs
+     (async done
+       (let [counter (atom 0)
+             stop    (i/periodically 100 #(swap! counter inc))]
+         (js/setTimeout (fn []
+                          (is (>= @counter 2))
+                          (stop)
+                          (done))
+                        30)))))
 
 (derive ::a ::i/aspect)
 

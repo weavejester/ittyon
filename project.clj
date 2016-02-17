@@ -13,7 +13,7 @@
   :codox
   {:metadata {:doc/format :markdown}
    :source-uri "https://github.com/weavejester/ittyon/blob/{version}/{filepath}#{line}"
-   :output-path "doc"}
+   :output-path "codox"}
   :cljsbuild
   {:builds
    [{:id "test"

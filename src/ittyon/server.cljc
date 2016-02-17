@@ -43,7 +43,8 @@
         (broadcast! server socket [:transact (vec trans)])))))
 
 (defn tick!
-  "Move the clock forward on the server."
+  "Move the clock forward on the server. This does not send anything to the
+  clients."
   [server]
   (swap! (:state server) i/tick (i/time)))
 
@@ -63,7 +64,9 @@
   "Accept a new connection in the form of a socket, a map that contains `:in`
   and `:out` keys that hold the input and output channels. Used in conjuction
   with [[client/connect!]]."
-  [{:keys [sockets state ping-delay] :as server} {:keys [in out] :as socket}]
+  {:arglists '([server socket])}
+  [{:keys [sockets state ping-delay] :as server}
+   {:keys [in out] :as socket}]
   (when (swap! sockets #(some-> % (conj socket)))
     (let [client-id (i/uuid)]
       (go (receive! server socket (connect-event client-id))

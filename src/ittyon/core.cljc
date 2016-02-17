@@ -101,6 +101,7 @@
 
 (defn update-snapshot
   "Update the state's snapshot for a single transition."
+  {:arglist '([state transition])}
   [{n :count :as state} [o e a v t]]
   (case o
     :assert (core/update state :snapshot assoc [e a v] [t n])
@@ -192,9 +193,10 @@
     [:revoke e a v* t]))
 
 (defn transition?
-  "Return true if x is a transition. A transition is a vector of five values,
-  commonly abbreviated to `[o e a v t]`. The op, o, is either `:assert` or
-  `:revoke`. The aspect, a, must be a keyword."
+  "Return true if x is a transition. A transition is a vector of five values:
+  operation, entity, aspect, value and time. These are commonly abbreviated to
+  `[o e a v t]`. The operation, o, is either `:assert` or `:revoke`. The aspect,
+  a, must be a keyword."
   [x]
   (and (sequential? x)
        (= (count x) 5)

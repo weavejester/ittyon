@@ -73,8 +73,9 @@
 (defn connect!
   "Connect to a server via a socket, a map that contains `:in` and `:out` keys
   that hold the input and output channels. Returns a channel that promises to
-  deliver a client map once the connection has been established (see also:
-  [[transact!]]). Used in conjuction with [[server/accept!]]."
+  deliver a new client once the connection has been established. Used in
+  conjuction with [[server/accept!]]."
+  {:arglists '([socket])}
   [{:keys [in] :as socket}]
   (let [return (a/promise-chan)]
     (go (let [client (make-client socket (<! in))]

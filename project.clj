@@ -5,11 +5,11 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/core.async "0.2.374"]
-                 [medley "0.7.0"]
-                 [intentions "0.2.0"]]
+                 [medley "0.7.1"]
+                 [intentions "0.2.1"]]
   :plugins [[lein-cljsbuild "1.1.2"]
             [lein-doo "0.1.6"]
-            [lein-codox "0.9.1"]]
+            [lein-codox "0.9.4"]]
   :codox
   {:metadata {:doc/format :markdown}
    :source-uri "https://github.com/weavejester/ittyon/blob/{version}/{filepath}#{line}"
@@ -26,8 +26,8 @@
   {"test-cljs" ["doo" "phantom" "test" "once"]
    "test-all"  ["do" ["test"] ["test-cljs"]]}
   :profiles
-  {:provided {:dependencies [[org.clojure/clojurescript "1.7.189"]]}
+  {:provided {:dependencies [[org.clojure/clojurescript "1.7.228"]]}
    :dev      {:dependencies [[org.clojure/tools.namespace "0.2.11"]
                              [criterium "0.4.3"]
-                             [jarohen/chord "0.6.0"]]
+                             [jarohen/chord "0.7.0"]]
               :jvm-opts ^:replace {}}})

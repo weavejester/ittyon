@@ -77,7 +77,7 @@
   promises to contain the client once the connection has been established. Used
   in conjuction with [[server/accept!]]."
   [socket]
-  (let [return (a/chan)]
+  (let [return (a/promise-chan)]
     (go (let [client (make-client socket (<! socket))]
           (>! return client)
           (a/close! return)

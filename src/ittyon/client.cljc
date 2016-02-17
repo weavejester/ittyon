@@ -8,9 +8,9 @@
             [ittyon.core :as i]
             [medley.core :refer [boolean?]]))
 
-(derive ::connected? ::i/aspect)
+(derive :ittyon/connected? :ittyon/aspect)
 
-(defconduct i/-valid? [:assert ::connected?] [_ [_ _ _ v _]]
+(defconduct i/-valid? [:assert :ittyon/connected?] [_ [_ _ _ v _]]
   (boolean? v))
 
 #?(:clj (defn- ex-message [ex] (.getMessage ex)))

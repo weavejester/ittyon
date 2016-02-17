@@ -12,15 +12,15 @@
             [ittyon.server :as server]
             [chord.channels :refer [bidi-ch]]))
 
-(i/derive ::name      ::i/aspect ::i/singular)
-(i/derive ::email     ::i/aspect ::i/singular)
-(i/derive ::clock     ::i/aspect ::i/singular)
-(i/derive ::selected? ::i/aspect ::i/singular)
+(i/derive ::name      :ittyon/aspect :ittyon/singular)
+(i/derive ::email     :ittyon/aspect :ittyon/singular)
+(i/derive ::clock     :ittyon/aspect :ittyon/singular)
+(i/derive ::selected? :ittyon/aspect :ittyon/singular)
 
 (def entity (i/uuid))
 
 (def init-state
-  (i/state [[entity ::i/live? true (i/time)]
+  (i/state [[entity :ittyon/live? true (i/time)]
             [entity ::name "alice" (i/time)]
             [entity ::email "alice@example.com" (i/time)]
             [entity ::clock 0 (i/time)]]))
@@ -46,8 +46,8 @@
 
        (testing "connected client stored in state"
          (let [facts (-> server :state deref :snapshot keys set)]
-           (is (contains? facts [(:id client) ::i/live? true]))
-           (is (contains? facts [(:id client) ::client/connected? true]))))
+           (is (contains? facts [(:id client) :ittyon/live? true]))
+           (is (contains? facts [(:id client) :ittyon/connected? true]))))
 
        (testing "client events relayed to server"
          (client/transact! client [[:assert entity ::name "bob"]
@@ -55,9 +55,9 @@
          (Thread/sleep 25)
          (is (= (-> client :state deref :snapshot keys set)
                 (-> server :state deref :snapshot keys set)
-                #{[(:id client) ::i/live? true]
-                  [(:id client) ::client/connected? true]
-                  [entity ::i/live? true]
+                #{[(:id client) :ittyon/live? true]
+                  [(:id client) :ittyon/connected? true]
+                  [entity :ittyon/live? true]
                   [entity ::name "bob"]
                   [entity ::email "bob@example.com"]
                   [entity ::clock 0]})))
@@ -91,8 +91,8 @@
 
              (testing "connected client stored in state"
                (let [facts (-> server :state deref :snapshot keys set)]
-                 (is (contains? facts [(:id client) ::i/live? true]))
-                 (is (contains? facts [(:id client) ::client/connected? true]))))
+                 (is (contains? facts [(:id client) :ittyon/live? true]))
+                 (is (contains? facts [(:id client) :ittyon/connected? true]))))
 
              (testing "client events relayed to server"
                (client/transact! client [[:assert entity ::name "bob"]
@@ -100,9 +100,9 @@
                (<! (a/timeout 25))
                (is (= (-> client :state deref :snapshot keys set)
                       (-> server :state deref :snapshot keys set)
-                      #{[(:id client) ::i/live? true]
-                        [(:id client) ::client/connected? true]
-                        [entity ::i/live? true]
+                      #{[(:id client) :ittyon/live? true]
+                        [(:id client) :ittyon/connected? true]
+                        [entity :ittyon/live? true]
                         [entity ::name "bob"]
                         [entity ::email "bob@example.com"]
                         [entity ::clock 0]})))
@@ -225,12 +225,12 @@
 
            (done))))))
 
-(i/derive ::hire ::i/aspect ::i/singular)
-(i/derive ::employee ::i/aspect ::i/singular ::i/ref)
+(i/derive ::hire     :ittyon/aspect :ittyon/singular)
+(i/derive ::employee :ittyon/aspect :ittyon/singular :ittyon/ref)
 
 (defconduct i/-react [:assert ::hire] [s [_ e a v t]]
   (let [e' (i/uuid)]
-    [^:impure [:assert e' ::i/live? true t]
+    [^:impure [:assert e' :ittyon/live? true t]
      ^:impure [:assert e' ::name v t]
      ^:impure [:assert e ::employee e' t]]))
 
@@ -245,7 +245,7 @@
            client1 (<!! (connect-client! server))
            client2 (<!! (connect-client! server))
            entity  (i/uuid)]
-       (client/transact! client1 [[:assert entity ::i/live? true]
+       (client/transact! client1 [[:assert entity :ittyon/live? true]
                                   [:assert entity ::hire "bob"]])
        (Thread/sleep 25)
        (let [employee (-> server :state deref (get-employee entity))]
@@ -261,7 +261,7 @@
                  client1 (<! (connect-client! server))
                  client2 (<! (connect-client! server))
                  entity  (i/uuid)]
-             (client/transact! client1 [[:assert entity ::i/live? true]
+             (client/transact! client1 [[:assert entity :ittyon/live? true]
                                         [:assert entity ::hire "bob"]])
              (<! (a/timeout 25))
              (let [employee (-> server :state deref (get-employee entity))]

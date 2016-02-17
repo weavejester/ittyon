@@ -47,11 +47,11 @@
   (swap! (:state server) i/tick (i/time)))
 
 (defn- connect-event [client-id]
-  [:transact [[:assert client-id ::i/live? true (i/time)]
-              [:assert client-id ::ic/connected? true (i/time)]]])
+  [:transact [[:assert client-id :ittyon/live? true (i/time)]
+              [:assert client-id :ittyon/connected? true (i/time)]]])
 
 (defn- disconnect-event [client-id]
-  [:transact [[:revoke client-id ::i/live? true (i/time)]]])
+  [:transact [[:revoke client-id :ittyon/live? true (i/time)]]])
 
 (defn- handshake-event [client-id init-state]
   [:init {:id    client-id

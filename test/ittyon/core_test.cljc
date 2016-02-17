@@ -36,7 +36,7 @@
                           (done))
                         30)))))
 
-(derive ::a ::i/aspect)
+(derive ::a :ittyon/aspect)
 
 (def eavt-state
   {:snapshot {[:e ::a :v] [:t 0]}
@@ -80,28 +80,28 @@
   (let [entity (i/uuid)
         time   (i/time)
         state  (i/state)]
-    (i/derive ::name ::i/aspect ::i/singular)
+    (i/derive ::name :ittyon/aspect :ittyon/singular)
     (is (not (i/valid? state [:assert entity ::name "alice" time])))
-    (is (not (i/valid? state [:assert entity ::i/live? false time])))
-    (is (i/valid? state [:assert entity ::i/live? true time]))))
+    (is (not (i/valid? state [:assert entity :ittyon/live? false time])))
+    (is (i/valid? state [:assert entity :ittyon/live? true time]))))
 
-(i/derive ::toggle ::i/aspect ::i/singular)
+(i/derive ::toggle :ittyon/aspect :ittyon/singular)
 
 (defconduct i/-react [:assert ::toggle] [s [_ e a v t]]
   (if (get-in s [:index :eavt e a v])
     [[:revoke e a v t]]))
 
 (deftest test-react
-  (i/derive ::name ::i/aspect ::i/singular)
+  (i/derive ::name :ittyon/aspect :ittyon/singular)
   (let [entity (i/uuid)
         time   (i/time)
-        state  (i/state #{[entity ::i/live? true time]
+        state  (i/state #{[entity :ittyon/live? true time]
                           [entity ::name "alice" time]})]
     (testing "singular"
       (is (= (i/react state [:assert entity ::name "bob" time])
              [[:revoke entity ::name "alice" time]])))
     (testing "live?"
-      (is (= (i/react state [:revoke entity ::i/live? true time])
+      (is (= (i/react state [:revoke entity :ittyon/live? true time])
              [[:revoke entity ::name "alice" time]])))
     (testing "toggle"
       (let [transition [:assert entity ::toggle "foo" time]]
@@ -109,8 +109,8 @@
         (is (= (i/react (i/update state transition) transition)
                [[:revoke entity ::toggle "foo" time]]))))))
 
-(i/derive ::dice ::i/aspect ::i/singular)
-(i/derive ::roll ::i/aspect ::i/singular)
+(i/derive ::dice :ittyon/aspect :ittyon/singular)
+(i/derive ::roll :ittyon/aspect :ittyon/singular)
 
 (defconduct i/-react [:assert ::dice] [s [_ e a v t]]
   [[:revoke e a v t]
@@ -119,17 +119,17 @@
 (deftest test-commit
   (let [entity (i/uuid)
         time   (i/time)]
-    (i/derive ::name ::i/aspect ::i/singular)
+    (i/derive ::name :ittyon/aspect :ittyon/singular)
 
     (testing "valid commit"
       (let [state (-> (i/state)
-                      (i/commit [:assert entity ::i/live? true time])
+                      (i/commit [:assert entity :ittyon/live? true time])
                       (i/commit [:assert entity ::name "alice" time])
                       (i/commit [:assert entity ::name "bob" time])
                       (i/commit [:assert entity ::toggle "foo" time])
                       (i/commit [:assert entity ::toggle "foo" time]))]
         (is (= (:snapshot state)
-               {[entity ::i/live? true] [time 0]
+               {[entity :ittyon/live? true] [time 0]
                 [entity ::name "bob"]   [time 2]}))
         (is (= (:log state)
                (list [:revoke entity ::toggle "foo" time]
@@ -138,7 +138,7 @@
                      [:revoke entity ::name "alice" time]
                      [:assert entity ::name "bob" time]
                      [:assert entity ::name "alice" time]
-                     [:assert entity ::i/live? true time])))))
+                     [:assert entity :ittyon/live? true time])))))
 
     (testing "invalid commit"
       (is (thrown-with-msg?
@@ -148,7 +148,7 @@
 
     (testing "commit with reaction transducer"
       (let [trans [:assert entity ::dice 1000 time]
-            state (i/commit (i/state) [:assert entity ::i/live? true time])]
+            state (i/commit (i/state) [:assert entity :ittyon/live? true time])]
         (is (not= (:snapshot (i/commit state trans)) (:snapshot state)))
         (is (= (:snapshot (i/commit state trans (remove (comp :impure meta))))
                (:snapshot state)))))))
@@ -159,32 +159,32 @@
            123456789))))
 
 (deftest test-refs
-  (i/derive ::name ::i/aspect ::i/singular)
-  (i/derive ::child ::i/aspect ::i/ref)
+  (i/derive ::name  :ittyon/aspect :ittyon/singular)
+  (i/derive ::child :ittyon/aspect :ittyon/ref)
   (let [parent-id (i/uuid)
         child-id  (i/uuid)
         time      (i/time)
         state     (-> (i/state)
-                      (i/commit [:assert parent-id ::i/live? true time])
+                      (i/commit [:assert parent-id :ittyon/live? true time])
                       (i/commit [:assert parent-id ::name "alice" time])
-                      (i/commit [:assert child-id ::i/live? true time])
+                      (i/commit [:assert child-id :ittyon/live? true time])
                       (i/commit [:assert child-id ::name "bob" time])
                       (i/commit [:assert parent-id ::child child-id time]))
         state*    (-> state
-                      (i/commit [:revoke child-id ::i/live? true time]))]
+                      (i/commit [:revoke child-id :ittyon/live? true time]))]
     (is (get-in state [:snapshot [parent-id ::child child-id]]))
     (is (not (get-in state* [:snapshot [parent-id ::child child-id]])))))
 
 (deftest test-transact
-  (i/derive ::name ::i/aspect ::i/singular)
+  (i/derive ::name :ittyon/aspect :ittyon/singular)
   (let [entity (i/uuid)
         time   (i/time)
-        trans  [[:assert entity ::i/live? true time]
+        trans  [[:assert entity :ittyon/live? true time]
                 [:assert entity ::name "alice" time]]
         state  (i/transact (i/state) trans)
         state' (i/transact state [[:assert entity ::name "bob" time]])]
     (is (= (:snapshot state)
-           {[entity ::i/live? true] [time 0]
+           {[entity :ittyon/live? true] [time 0]
             [entity ::name "alice"] [time 1]}))
     (is (= (:last-transact state) trans))
     (is (= (:log state) (reverse trans)))

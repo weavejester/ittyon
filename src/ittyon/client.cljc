@@ -36,7 +36,7 @@
   (reset! (:time-offset client) (- (i/time) time)))
 
 (defn ^:no-doc send! [client message]
-  (a/put! (:socket client) message))
+  (a/put! (-> client :socket :out) message))
 
 (defn- fill-transition-times [transitions offset]
   (let [time (i/time)]
@@ -71,16 +71,17 @@
    :logger      println})
 
 (defn connect!
-  "Connect to a server via a bi-directional channel, and return a channel that
-  promises to contain the client once the connection has been established. Used
-  in conjuction with [[server/accept!]]."
-  [socket]
+  "Connect to a server via a socket, a map that contains `:in` and `:out` keys
+  that hold the input and output channels. Returns a channel that promises to
+  deliver a client map once the connection has been established (see also:
+  [[transact!]]). Used in conjuction with [[server/accept!]]."
+  [{:keys [in] :as socket}]
   (let [return (a/promise-chan)]
-    (go (let [client (make-client socket (<! socket))]
+    (go (let [client (make-client socket (<! in))]
           (>! return client)
           (a/close! return)
           (loop []
-            (when-let [event (<! socket)]
+            (when-let [event (<! in)]
               (receive! client event)
               (recur)))))
     return))

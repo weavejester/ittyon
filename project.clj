@@ -28,6 +28,5 @@
   :profiles
   {:provided {:dependencies [[org.clojure/clojurescript "1.7.228"]]}
    :dev      {:dependencies [[org.clojure/tools.namespace "0.2.11"]
-                             [criterium "0.4.3"]
-                             [jarohen/chord "0.7.0"]]
+                             [criterium "0.4.3"]]
               :jvm-opts ^:replace {}}})

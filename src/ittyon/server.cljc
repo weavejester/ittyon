@@ -19,11 +19,12 @@
   "Shutdown the supplied server and atomically close all open sockets."
   [server]
   (doseq [sock (deref-reset! (:sockets server) nil)]
-    (a/close! sock)))
+    (a/close! (:in sock))
+    (a/close! (:out sock))))
 
 (defn ^:no-doc broadcast! [server socket message]
   (doseq [sock @(:sockets server) :when (not= sock socket)]
-    (a/put! sock message)))
+    (a/put! (:out sock) message)))
 
 (defn- transact! [server transitions]
   (ic/log-exceptions server #(swap! (:state server) i/transact transitions)))
@@ -37,7 +38,7 @@
   (when-let [state (transact! server transitions)]
     (let [impure (filter (comp :impure meta) (reverse (:log state)))]
       (when (seq impure)
-        (a/put! socket [:transact (vec impure)]))
+        (a/put! (:out socket) [:transact (vec impure)]))
       (when-let [trans (seq (concat transitions impure))]
         (broadcast! server socket [:transact (vec trans)])))))
 
@@ -59,22 +60,24 @@
           :reset (i/facts init-state)}])
 
 (defn accept!
-  "Accept a new connection in the form of a bi-directional core.async channel.
-  Used in conjuction with [[client/connect!]]."
-  [{:keys [sockets state ping-delay] :as server} socket]
+  "Accept a new connection in the form of a socket, a map that contains `:in`
+  and `:out` keys that hold the input and output channels. Used in conjuction
+  with [[client/connect!]]."
+  [{:keys [sockets state ping-delay] :as server} {:keys [in out] :as socket}]
   (when (swap! sockets #(some-> % (conj socket)))
     (let [client-id (i/uuid)]
       (go (receive! server socket (connect-event client-id))
-          (>! socket (handshake-event client-id @state))
+          (>! out (handshake-event client-id @state))
           (loop [timer (a/timeout ping-delay)]
-            (let [[val port] (a/alts! [socket timer])]
-              (if (identical? port socket)
+            (let [[val port] (a/alts! [in timer])]
+              (if (identical? port in)
                 (when val
                   (receive! server socket val)
                   (recur timer))
                 (do
-                  (>! socket [:time (i/time)])
+                  (>! out [:time (i/time)])
                   (recur (a/timeout ping-delay))))))
           (receive! server socket (disconnect-event client-id))
           (swap! sockets disj socket)
-          (a/close! socket)))))
+          (a/close! in)
+          (a/close! out)))))

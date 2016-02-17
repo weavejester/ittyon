@@ -9,8 +9,7 @@
             [clojure.set :as set]
             [ittyon.core :as i]
             [ittyon.client :as client]
-            [ittyon.server :as server]
-            [chord.channels :refer [bidi-ch]]))
+            [ittyon.server :as server]))
 
 (i/derive ::name      :ittyon/aspect :ittyon/singular)
 (i/derive ::email     :ittyon/aspect :ittyon/singular)
@@ -28,8 +27,8 @@
 (defn connect-client! [server]
   (let [a-ch   (a/chan)
         b-ch   (a/chan)
-        client (client/connect! (bidi-ch a-ch b-ch))]
-    (server/accept! server (bidi-ch b-ch a-ch))
+        client (client/connect! {:in a-ch :out b-ch})]
+    (server/accept! server {:in b-ch :out a-ch})
     client))
 
 (deftest test-async
@@ -132,7 +131,7 @@
   #?(:clj
      (do (testing "client"
            (let [ch     (a/chan)
-                 client (client/connect! ch)]
+                 client (client/connect! {:in ch, :out ch})]
              (>!! ch [:init {:id (i/uuid) :time (i/time) :reset #{}}])
              (let [time-offset (:time-offset (<!! client))]
                (is (<= 0 @time-offset 25))
@@ -149,7 +148,7 @@
            (let [server (-> (server/server init-state)
                             (assoc :ping-delay 25))
                  ch     (a/chan)]
-             (server/accept! server ch)
+             (server/accept! server {:in ch, :out ch})
              (is (= (first (<!! ch)) :init))
              (Thread/sleep 50)
              (is (= (first (<!! ch)) :time))
@@ -160,7 +159,7 @@
      (async done
        (go (testing "client"
              (let [ch     (a/chan)
-                   client (client/connect! ch)]
+                   client (client/connect! {:in ch, :out ch})]
                (>! ch [:init {:id (i/uuid) :time (i/time) :reset #{}}])
                (let [time-offset (:time-offset (<! client))]
                  (is (<= 0 @time-offset 25))
@@ -177,7 +176,7 @@
              (let [server (-> (server/server init-state)
                               (assoc :ping-delay 25))
                    ch     (a/chan)]
-               (server/accept! server ch)
+               (server/accept! server {:in ch, :out ch})
                (is (= (first (<! ch)) :init))
                (<! (a/timeout 50))
                (is (= (first (<! ch)) :time))

@@ -11,7 +11,8 @@ Ittyon draws inspiration from the [entity component][1] model, but
 provides a greater separation between code and data. Its data model
 has a lot in common with [Datomic][2].
 
-**Note:** Ittyon's network code should be considered experimental.
+Ittyon's network code should be considered **experimental**.
+Experimental means that the code is incomplete and subject to change.
 
 [1]: https://en.wikipedia.org/wiki/Entity_component_system
 [2]: http://www.datomic.com/

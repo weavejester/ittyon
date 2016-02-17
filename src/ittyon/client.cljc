@@ -6,20 +6,18 @@
             #?(:clj  [intentions.core :refer [defconduct]]
                :cljs [intentions.core :refer-macros [defconduct]])
             [ittyon.core :as i]
-            [medley.core :refer [boolean?]]))
+            [medley.core :as m]))
 
 (derive :ittyon/connected? :ittyon/aspect)
 
 (defconduct i/-valid? [:assert :ittyon/connected?] [_ [_ _ _ v _]]
-  (boolean? v))
-
-#?(:clj (defn- ex-message [ex] (.getMessage ex)))
+  (m/boolean? v))
 
 (defn ^:no-doc log-exceptions [{:keys [logger]} f]
   (try
     (f)
     (catch #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo) ex
-      (logger (str (ex-message ex) ": " (:transition (ex-data ex))))
+      (logger (str (m/ex-message ex) ": " (:transition (ex-data ex))))
       nil)))
 
 (defmulti ^:no-doc receive!

@@ -150,10 +150,10 @@
   (and (uuid? e) (integer? t) (true? v)))
 
 (defconduct -valid? [:assert :ittyon/aspect] [s [o e a v t]]
-  (and (uuid? e) (integer? t) (get-in s [:index :eavt e :ittyon/live?])))
+  (and (uuid? e) (integer? t) (-> s :index :eavt (get e) :ittyon/live?)))
 
 (defconduct -valid? [:assert :ittyon/ref] [s [o e a v t]]
-  (get-in s [:index :eavt v]))
+  (-> s :index :eavt (get v)))
 
 (defconduct -valid? [:revoke :ittyon/live?] [_ [o e a v t]]
   (integer? t))
@@ -173,14 +173,14 @@
 (defconduct -react :default [_ _] '())
 
 (defn- revoke-aspects [s e t]
-  (for [[a vt] (get-in s [:index :eavt e])
+  (for [[a vt] (-> s :index :eavt (get e))
         [v _]  vt
         :when  (not= a :ittyon/live?)]
     [:revoke e a v t]))
 
 (defn- revoke-refs [s v t]
   (for [a     (cons :ittyon/ref (descendants :ittyon/ref))
-        [e _] (get-in s [:index :avet a v])
+        [e _] (-> s :index :avet (get a) (get v))
         :when e]
     [:revoke e a v t]))
 
@@ -189,7 +189,7 @@
           (revoke-refs s e t)))
 
 (defconduct -react [:assert :ittyon/singular] [s [o e a v t]]
-  (for [v* (keys (get-in s [:index :eavt e a])) :when (not= v v*)]
+  (for [v* (keys (-> s :index :eavt (get e) (get a))) :when (not= v v*)]
     [:revoke e a v* t]))
 
 (defn transition?

@@ -1,4 +1,4 @@
-(defproject ittyon "0.11.0"
+(defproject ittyon "0.11.1"
   :description "Manage distributed state for games"
   :url "https://github.com/weavejester/ittyon"
   :license {:name "Eclipse Public License"

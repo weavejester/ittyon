@@ -22,7 +22,7 @@ Experimental means that the code is incomplete and subject to change.
 Add the following to your project dependencies:
 
 ```clojure
-[ittyon "0.11.1"]
+[ittyon "0.11.2"]
 ```
 
 ## Overview

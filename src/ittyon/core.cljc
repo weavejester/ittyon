@@ -150,7 +150,7 @@
   (and (uuid? e) (integer? t) (true? v)))
 
 (defconduct -valid? [:assert :ittyon/aspect] [s [o e a v t]]
-  (and (uuid? e) (integer? t) (-> s :index :eavt (get e) :ittyon/live?)))
+  (and (uuid? e) (some? v) (integer? t) (-> s :index :eavt (get e) :ittyon/live?)))
 
 (defconduct -valid? [:assert :ittyon/ref] [s [o e a v t]]
   (-> s :index :eavt (get v)))
@@ -187,6 +187,11 @@
 (defconduct -react [:revoke :ittyon/live?] [s [o e a v t]]
   (concat (revoke-aspects s e t)
           (revoke-refs s e t)))
+
+(defconduct -react [:revoke :ittyon/aspect] [s [o e a v t]]
+  (if (nil? v)
+    (for [v* (-> s :index :eavt (get e) (get a) keys)]
+      [:revoke e a v* t])))
 
 (defconduct -react [:assert :ittyon/singular] [s [o e a v t]]
   (for [v* (keys (-> s :index :eavt (get e) (get a))) :when (not= v v*)]

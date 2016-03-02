@@ -175,6 +175,19 @@
     (is (get-in state [:snapshot [parent-id ::child child-id]]))
     (is (not (get-in state* [:snapshot [parent-id ::child child-id]])))))
 
+(deftest test-revoke-aspect
+  (i/derive ::job :ittyon/aspect)
+  (let [entity (i/uuid)
+        time   (i/time)
+        state  (-> (i/state)
+                   (i/commit [:assert entity :ittyon/live? true time])
+                   (i/commit [:assert entity ::job "barber" time])
+                   (i/commit [:assert entity ::job "surgeon" time]))
+        state* (-> state
+                   (i/commit [:revoke entity ::job nil time]))]
+    (is (= (-> state :index :eavt (get entity) ::job keys set) #{"barber" "surgeon"}))
+    (is (-> state* :index :eavt (get entity) ::job keys empty?))))
+
 (deftest test-transact
   (i/derive ::name :ittyon/aspect :ittyon/singular)
   (let [entity (i/uuid)

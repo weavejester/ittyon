@@ -239,7 +239,9 @@
                       :transition transition})))))
 
 (defn- tick-aspects [conducts]
-  (set (keep (fn [[o a]] (if (= o :tick) a)) conducts)))
+  (into #{}
+        (comp (filter vector?) (keep (fn [[o a]] (if (= o :tick) a))))
+        (keys conducts)))
 
 (defn- tick-reactor [state time aspects]
   (fn [[[e a _] _]] (if (aspects a) (react state [:tick e a time]))))

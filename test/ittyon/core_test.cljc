@@ -153,7 +153,25 @@
         (is (= (:snapshot (i/commit state trans (remove (comp :impure meta))))
                (:snapshot state)))))))
 
+
+(i/derive ::clock :ittyon/aspect :ittyon/singular)
+
+(defconduct i/-react [:tick ::clock] [s [o e a t]]
+  [[:assert e a t t]])
+
 (deftest test-tick
+  (testing "reactions"
+    (let [entity (i/uuid)
+          t0     (i/time)
+          t1     (+ t0 1000)
+          state  (-> (i/state)
+                     (i/commit [:assert entity :ittyon/live? true t0])
+                     (i/commit [:assert entity ::clock 0 t0])
+                     (i/tick t1))]
+      (is (= (:snapshot state)
+             {[entity :ittyon/live? true] [t0 0]
+              [entity ::clock t1] [t1 2]}))))
+
   (testing "last tick recorded"
     (is (= (-> (i/state) (i/tick 123456789) :last-tick)
            123456789))))

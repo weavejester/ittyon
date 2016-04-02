@@ -3,10 +3,10 @@
   (:refer-clojure :exclude [time derive update uuid])
   #?(:clj  (:require [clojure.core :as core]
                      [medley.core :refer [dissoc-in map-keys map-vals]]
-                     [intentions.core :refer [defintent defconduct]])
+                     [intentions.core :as int :refer [defintent defconduct]])
      :cljs (:require [cljs.core :as core]
                      [medley.core :refer [dissoc-in map-keys map-vals]]
-                     [intentions.core :refer-macros [defintent defconduct]])))
+                     [intentions.core :as int :refer-macros [defintent defconduct]])))
 
 (defn time
   "Return the current system time in milliseconds."
@@ -238,15 +238,20 @@
                      {:state state
                       :transition transition})))))
 
-(defn- tick-reactions [s t]
-  (mapcat (fn [[[e a _] _]] (react s [:tick e a t])) (:snapshot s)))
+(defn- tick-aspects [conducts]
+  (set (keep (fn [[o a]] (if (= o :tick) a)) conducts)))
+
+(defn- tick-reactor [state time aspects]
+  (fn [[[e a _] _]] (if (aspects a) (react state [:tick e a time]))))
 
 (defn tick
   "Update a state by moving the clock forward to a new time. This may generate
   reactions that alter the state."
   [state time]
-  (-> (reduce commit state (tick-reactions state time))
-      (assoc :last-tick time)))
+  (let [aspects (tick-aspects (int/conducts -react))
+        xform   (mapcat (tick-reactor state time aspects))]
+    (-> (transduce xform (completing commit) state (:snapshot state))
+        (assoc :last-tick time))))
 
 (defn transact
   "Takes a state and an ordered collection of transitions, and returns a new

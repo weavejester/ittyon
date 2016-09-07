@@ -33,14 +33,15 @@
 
 (deftest test-async
   #?(:clj
-     (let [server (server/server init-state)
-           client (<!! (connect-client! server))]
+     (let [server     (server/server init-state)
+           client     (<!! (connect-client! server))
+           local-fact [(:id client) :ittyon/local? true]]
 
        (testing "identity of client"
          (i/uuid? (:id client)))
        
        (testing "initial state transferred to client"
-         (is (= (-> client :state deref :snapshot keys set)
+         (is (= (-> client :state deref :snapshot keys set (disj local-fact))
                 (-> server :state deref :snapshot keys set))))
 
        (testing "connected client stored in state"
@@ -48,11 +49,15 @@
            (is (contains? facts [(:id client) :ittyon/live? true]))
            (is (contains? facts [(:id client) :ittyon/connected? true]))))
 
+       (testing "client has locality"
+         (let [facts (-> client :state deref :snapshot keys set)]
+           (is (contains? facts [(:id client) :ittyon/local? true]))))
+
        (testing "client events relayed to server"
          (client/transact! client [[:assert entity ::name "bob"]
                                    [:assert entity ::email "bob@example.com"]])
          (Thread/sleep 25)
-         (is (= (-> client :state deref :snapshot keys set)
+         (is (= (-> client :state deref :snapshot keys set (disj local-fact))
                 (-> server :state deref :snapshot keys set)
                 #{[(:id client) :ittyon/live? true]
                   [(:id client) :ittyon/connected? true]
@@ -65,7 +70,7 @@
          (client/transact! client [^:local [:assert entity ::selected? true]])
          (Thread/sleep 25)
          (is (= (set/difference
-                 (-> client :state deref :snapshot keys set)
+                 (-> client :state deref :snapshot keys set (disj local-fact))
                  (-> server :state deref :snapshot keys set))
                 #{[entity ::selected? true]})))
 
@@ -78,14 +83,15 @@
 
      :cljs
      (async done
-       (go (let [server (server/server init-state)
-                 client (<! (connect-client! server))]
+       (go (let [server     (server/server init-state)
+                 client     (<! (connect-client! server))
+                 local-fact [(:id client) :ittyon/local? true]]
 
              (testing "identity of client"
                (i/uuid? (:id client)))
 
              (testing "initial state transferred to client"
-               (is (= (-> client :state deref :snapshot keys set)
+               (is (= (-> client :state deref :snapshot keys set (disj local-fact))
                       (-> server :state deref :snapshot keys set))))
 
              (testing "connected client stored in state"
@@ -93,11 +99,15 @@
                  (is (contains? facts [(:id client) :ittyon/live? true]))
                  (is (contains? facts [(:id client) :ittyon/connected? true]))))
 
+             (testing "client has locality"
+               (let [facts (-> client :state deref :snapshot keys set)]
+                 (is (contains? facts [(:id client) :ittyon/local? true]))))
+
              (testing "client events relayed to server"
                (client/transact! client [[:assert entity ::name "bob"]
                                          [:assert entity ::email "bob@example.com"]])
                (<! (a/timeout 25))
-               (is (= (-> client :state deref :snapshot keys set)
+               (is (= (-> client :state deref :snapshot keys set (disj local-fact))
                       (-> server :state deref :snapshot keys set)
                       #{[(:id client) :ittyon/live? true]
                         [(:id client) :ittyon/connected? true]
@@ -114,7 +124,7 @@
                                            {:local true})])
                (<! (a/timeout 25))
                (is (= (set/difference
-                       (-> client :state deref :snapshot keys set)
+                       (-> client :state deref :snapshot keys set (disj local-fact))
                        (-> server :state deref :snapshot keys set))
                       #{[entity ::selected? true]})))
 
@@ -240,33 +250,47 @@
 
 (deftest test-impure
   #?(:clj
-     (let [server  (server/server init-state)
-           client1 (<!! (connect-client! server))
-           client2 (<!! (connect-client! server))
-           entity  (i/uuid)]
+     (let [server      (server/server init-state)
+           client1     (<!! (connect-client! server))
+           client2     (<!! (connect-client! server))
+           local-fact1 [(:id client1) :ittyon/local? true]
+           local-fact2 [(:id client2) :ittyon/local? true]
+           entity      (i/uuid)]
        (client/transact! client1 [[:assert entity :ittyon/live? true]
                                   [:assert entity ::hire "bob"]])
        (Thread/sleep 25)
+
        (let [employee (-> server :state deref (get-employee entity))]
          (is (i/uuid? (:id employee)))
          (is (= (:name employee) "bob")))
+
        (is (= (-> server  :state deref :snapshot keys set)
-              (-> client1 :state deref :snapshot keys set)
-              (-> client2 :state deref :snapshot keys set))))
+              (-> client1 :state deref :snapshot keys set (disj local-fact1))
+              (-> client2 :state deref :snapshot keys set (disj local-fact2))))
+
+       (is (contains? (-> client1 :state deref :snapshot keys set) local-fact1))
+       (is (contains? (-> client2 :state deref :snapshot keys set) local-fact2)))
 
      :cljs
      (async done
-       (go (let [server  (server/server init-state)
-                 client1 (<! (connect-client! server))
-                 client2 (<! (connect-client! server))
-                 entity  (i/uuid)]
+       (go (let [server      (server/server init-state)
+                 client1     (<! (connect-client! server))
+                 client2     (<! (connect-client! server))
+                 local-fact1 [(:id client1) :ittyon/local? true]
+                 local-fact2 [(:id client2) :ittyon/local? true]
+                 entity      (i/uuid)]
              (client/transact! client1 [[:assert entity :ittyon/live? true]
                                         [:assert entity ::hire "bob"]])
              (<! (a/timeout 25))
+
              (let [employee (-> server :state deref (get-employee entity))]
                (is (i/uuid? (:id employee)))
                (is (= (:name employee) "bob")))
+
              (is (= (-> server  :state deref :snapshot keys set)
-                    (-> client1 :state deref :snapshot keys set)
-                    (-> client2 :state deref :snapshot keys set)))
+                    (-> client1 :state deref :snapshot keys set (disj local-fact1))
+                    (-> client2 :state deref :snapshot keys set (disj local-fact2))))
+
+             (is (contains? (-> client1 :state deref :snapshot keys set) local-fact1))
+             (is (contains? (-> client2 :state deref :snapshot keys set) local-fact2))
              (done))))))

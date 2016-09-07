@@ -9,9 +9,13 @@
             [medley.core :as m]))
 
 (derive :ittyon/connected? :ittyon/aspect)
+(derive :ittyon/local?     :ittyon/aspect)
 
 (defconduct i/-valid? [:assert :ittyon/connected?] [_ [_ _ _ v _]]
   (m/boolean? v))
+
+(defconduct i/-valid? [:assert :ittyon/local?] [_ [_ _ _ v _]]
+  (true? v))
 
 (defn ^:no-doc log-exceptions [{:keys [logger]} f]
   (try
@@ -66,7 +70,7 @@
   {:pre [(= event-type :init)]}
   {:socket      socket
    :id          id
-   :state       (atom (i/state reset))
+   :state       (atom (i/state (conj reset [id :ittyon/local? true time])))
    :time-offset (atom (- (i/time) time))
    :logger      println})
 
